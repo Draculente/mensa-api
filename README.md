@@ -46,3 +46,20 @@ Per default the app will run on port 3000. You can change this by setting the `P
 The app is deployed on a kubernetes cluster. To deploy a new version, just push to the master branch. The cluster will automatically pull the latest version and restart the app.  
 
 The app is available at https://speiseplan.mcloud.digital .
+
+## Gitmoji
+
+This project uses [gitmoji](https://gitmoji.carloscuesta.me/) to make commits more expressive.
+
+### Installation
+
+```bash
+npm install -g gitmoji-cli
+```
+
+### Initialize as git hook
+
+```bash
+gitmoji -i
+```
+
