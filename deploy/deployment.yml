@@ -16,7 +16,7 @@ spec:
         app: speiseplan
     spec:
       containers:
-      - image: "ghcr.io/draculente/mensa-api:main"
+      - image: "ghcr.io/draculente/mensa-api:master"
         name: speiseplan
         imagePullPolicy: Always
         ports:
