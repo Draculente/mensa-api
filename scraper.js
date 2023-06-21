@@ -20,7 +20,7 @@ async function fetchSpeiseplan() {
 
     // Schleife zum Generieren der Termine für die nächsten 6 Tage (ohne Samstag und Sonntag)
     for (let index = 0; index < 7 - dayOfWeek[now.getDay()]; index++) {
-        const date = now.setDate(now.getDate() + index); // Datum für den aktuellen Tag
+        const date = now.setDate(new Date().getDate() + index); // Datum für den aktuellen Tag
         const day = dayOfWeek[now.getDay()]; // Wochentag für das aktuelle Datum
         if (day < 6) {
             dates.push(new Date(date)); // Das Datum zum Array hinzufügen, wenn es kein Samstag oder Sonntag ist

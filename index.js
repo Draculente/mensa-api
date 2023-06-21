@@ -10,7 +10,7 @@ app.use(cors());
 
 const PORT = process.env.PORT || 3000;
 
-const weekdays = ["mo", "di", "mi", "do", "fr", "sa", "so"];
+const weekdays = ["so", "mo", "di", "mi", "do", "fr", "sa"];
 
 app.get('/', (req, res) => {
     res.json({
