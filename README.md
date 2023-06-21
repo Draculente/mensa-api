@@ -13,7 +13,13 @@ Returns a list of all meals.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| `day` | string | The day of the week. Valid values are 'mo', 'di', 'mi', 'do', 'fr', 'sa' and 'so'. Only days after the current will return a value. |
+| `day` | string | The day of the week. Valid values are 'mo', 'di', 'mi', 'do' and 'fr'. Only days after the current will return a value. |
+
+##### Example
+
+```bash
+curl https://speiseplan.mcloud.digital/meals?day=fr
+```
 
 ## Local Setup
 
