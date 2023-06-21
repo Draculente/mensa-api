@@ -75,7 +75,7 @@ async function fetchSpeiseplan() {
     return result; // Das Ergebnis zurückgeben
 }
 
-const CACHE_TTL = process.env.CACHE_TTL || 1000 * 60 * 60;
+const CACHE_TTL = process.env.CACHE_TTL || 1000 * 60 * 60 * 4;
 
 let cache = {
     data: null,
