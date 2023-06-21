@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: speiseplan
+  namespace: simple-tools
+  labels:
+    app: speiseplan
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: speiseplan
+  template:
+    metadata:
+      labels:
+        app: speiseplan
+    spec:
+      containers:
+      - image: "ghcr.io/draculente/mensa-api:main"
+        name: speiseplan
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+        resources: {}
+      imagePullSecrets:
+      - name: "dockerconfigjson-github-com"

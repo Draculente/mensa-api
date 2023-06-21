@@ -1,0 +1,36 @@
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: speiseplan-ingress
+  namespace: simple-tools
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  tls:
+  - hosts:
+    - 'speiseplan-mensa.k8s.mcloud.digital'
+    secretName: 'speiseplan-mensa-k8s-mcloud-letsencrypt-tls'
+  - hosts:
+    - 'speiseplan.mcloud.digital'
+    secretName: 'speiseplan-mcloud-letsencrypt-tls'
+  rules:
+  - host: 'speiseplan-mensa.k8s.mcloud.digital'
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: speiseplan-service
+            port: 
+              number: 80
+  - host: 'speiseplan.mcloud.digital'
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: speiseplan-service
+            port: 
+              number: 80
