@@ -18,10 +18,6 @@ app.get('/', (req, res) => {
     })
 });
 
-app.options('/meals', (req, res) => {
-    res.send("get")
-});
-
 app.get('/meals', async (req, res, next) => {
     try {
         let data = await getSpeiseplan();
