@@ -18,7 +18,7 @@ Returns a list of all meals.
 ##### Example
 
 ```bash
-curl https://speiseplan.mcloud.digital/meals?day=fr
+curl https://speiseplan.mcloud.digital/meals?day=fr | jq
 ```
 
 ## Local Setup
