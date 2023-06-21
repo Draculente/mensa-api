@@ -27,6 +27,19 @@ async function fetchSpeiseplan() {
         }
     }
 
+    const allergens = [];
+
+    let allergeneElements = document.querySelector(".mbf_content").children
+
+    for (let i = 0; i < allergeneElements.length; i++) {
+        const allergene = {
+            code: allergeneElements[i].attributes["data-wert"].value,
+            name: allergeneElements[i].children[1].innerHTML
+        }
+
+        allergens.push(allergene)
+    }
+
     // Schleife zum Extrahieren der Mahlzeiten für jeden Termin
     for (const day in dates) {
         const meals = document.querySelector(
@@ -56,12 +69,22 @@ async function fetchSpeiseplan() {
                 mealsInfos[i].attributes["data-arten"].value.includes("vn"); // Überprüfen, ob die Mahlzeit vegetarisch ist
             const location = mealsInfos[i].querySelector(".menu_art").textContent; // Den Ort der Mahlzeit extrahieren
 
+            const mealAllergens = []
+
+            for (let x = 0; x < allergens.length; x++) {
+                if (mealsInfos[i]
+                    .querySelector(".menu_name").textContent.includes(allergens[x].code)) {
+                    mealAllergens.push(allergens[x])
+                }
+            }
+
             // Die extrahierten Informationen zur Mahlzeit zum Array hinzufügen
             mealsArray.push({
                 name: name,
                 price: price,
                 vegetarian: vegetarian,
                 location: location,
+                allergens: mealAllergens
             });
         }
 
