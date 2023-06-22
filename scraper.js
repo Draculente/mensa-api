@@ -13,92 +13,118 @@ async function fetchSpeiseplan() {
 
     const result = []; // Array zum Speichern der Ergebnisse
 
-    const dates = []; // Array zum Speichern der Termine
-    var dayOfWeek = [7, 1, 2, 3, 4, 5, 6]; // Array der Wochentage (0 = Sonntag, 1 = Montag, usw.)
-
-    const now = new Date(); // Aktuelles Datum und Uhrzeit
-
-    // Schleife zum Generieren der Termine für die nächsten 6 Tage (ohne Samstag und Sonntag)
-    for (let index = 0; index < 7 - dayOfWeek[now.getDay()]; index++) {
-        const date = now.setDate(new Date().getDate() + index); // Datum für den aktuellen Tag
-        const day = dayOfWeek[now.getDay()]; // Wochentag für das aktuelle Datum
-        if (day < 6) {
-            dates.push(new Date(date)); // Das Datum zum Array hinzufügen, wenn es kein Samstag oder Sonntag ist
-        }
-    }
-
-    const allergens = [];
-
-    let allergeneElements = document.querySelector(".mbf_content").children
-
-    for (let i = 0; i < allergeneElements.length; i++) {
-        const allergene = {
-            code: allergeneElements[i].attributes["data-wert"].value,
-            name: allergeneElements[i].children[1].innerHTML
-        }
-
-        allergens.push(allergene)
-    }
+    const dates = getDates(); // Array der nächsten 6 Termine (ohne Samstag und Sonntag)
+    const allergens = getAllergens(document); // Array der Allergene
 
     // Schleife zum Extrahieren der Mahlzeiten für jeden Termin
-    for (const day in dates) {
-        const meals = document.querySelector(
-            `[data-day="${dates[day].toISOString().slice(0, 10)}"]:not(.mb_day)`
-        ); // Element mit den Mahlzeiten für das aktuelle Datum auswählen
-
-        const mealsInfos = meals.getElementsByClassName("mensa_menu_detail"); // Alle Mahlzeiteninformationen auswählen
-
-        let mealsArray = []; // Array zum Speichern der einzelnen Mahlzeiten
-
-        // Schleife zum Extrahieren der Informationen für jede Mahlzeit
-        for (let i = 0; i < mealsInfos.length; i++) {
-            let name = mealsInfos[i]
-                .querySelector(".menu_name")
-                .innerHTML.split(
-                    /<\/?\w+((\s+\w+(\s*=\s*(?:".*?"|'.*?'|[\^'">\s]+))?)+\s*|\s*)\/?>/
-                ); // Den Namen der Mahlzeit extrahieren und HTML-Tags entfernen
-
-            name = name
-                .filter((item) => item && !item.startsWith("(") && !item.includes("="))
-                .map((item) => item.trim())
-                .join(", "); // Den Namen bereinigen und formatieren
-
-            const price = mealsInfos[i].querySelector(".menu_preis").textContent; // Den Preis der Mahlzeit extrahieren
-            const vegetarian =
-                mealsInfos[i].attributes["data-arten"].value.includes("ve") ||
-                mealsInfos[i].attributes["data-arten"].value.includes("vn"); // Überprüfen, ob die Mahlzeit vegetarisch ist
-            const vegan = mealsInfos[i].attributes["data-arten"].value.includes("vn");
-            const location = mealsInfos[i].querySelector(".menu_art").textContent; // Den Ort der Mahlzeit extrahieren
-
-            const mealAllergens = []
-
-            for (let x = 0; x < allergens.length; x++) {
-                if (mealsInfos[i]
-                    .querySelector(".menu_name").textContent.includes(allergens[x].code)) {
-                    mealAllergens.push(allergens[x])
-                }
-            }
-
-            // Die extrahierten Informationen zur Mahlzeit zum Array hinzufügen
-            mealsArray.push({
-                name: name,
-                price: price,
-                vegetarian: vegetarian,
-                vegan: vegan,
-                location: location,
-                allergens: mealAllergens
-            });
-        }
+    for (const date of dates) {
+        const meals = getMealsByDate(document, date); // Element mit den Mahlzeiten für das aktuelle Datum auswählen
+        const mealsArray = extractMealInformation(meals, allergens); // Array mit den extrahierten Mahlzeiten
 
         // Die Ergebnisse für das aktuelle Datum zum Ergebnis-Array hinzufügen
         result.push({
-            date: dates[day],
+            date: date,
             meals: mealsArray,
         });
     }
 
     return result; // Das Ergebnis zurückgeben
 }
+
+// Funktion zum Generieren der nächsten 6 Termine (ohne Samstag und Sonntag)
+function getDates() {
+    const dates = [];
+    const now = new Date(); // Aktuelles Datum und Uhrzeit
+
+    // Schleife zum Generieren der Termine für die nächsten 6 Tage (ohne Samstag und Sonntag)
+    for (let index = 0; index < 7 - now.getDay(); index++) {
+        const date = new Date(now);
+        date.setDate(date.getDate() + index);
+        const day = date.getDay(); // Wochentag für das aktuelle Datum
+        if (day > 0 && day < 6) {
+            dates.push(date); // Das Datum zum Array hinzufügen, wenn es kein Samstag oder Sonntag ist
+        }
+    }
+
+    return dates;
+}
+
+// Funktion zum Extrahieren der Allergene aus dem Dokument
+function getAllergens(document) {
+    const allergens = [];
+    const allergeneElements = document.querySelector(".mbf_content").children;
+
+    for (let i = 0; i < allergeneElements.length; i++) {
+        const allergene = {
+            code: allergeneElements[i].attributes["data-wert"].value,
+            name: allergeneElements[i].children[1].innerHTML,
+        };
+
+        allergens.push(allergene);
+    }
+
+    return allergens;
+}
+
+// Funktion zum Extrahieren der Mahlzeiten für ein bestimmtes Datum
+function getMealsByDate(document, date) {
+    const isoDate = date.toISOString().slice(0, 10);
+    const meals = document.querySelector(`[data-day="${isoDate}"]:not(.mb_day)`);
+
+    return meals;
+}
+
+// Funktion zum Extrahieren der Informationen für jede Mahlzeit
+function extractMealInformation(meals, allergens) {
+    const mealsInfos = meals.getElementsByClassName("mensa_menu_detail"); // Alle Mahlzeiteninformationen auswählen
+    const mealsArray = []; // Array zum Speichern der einzelnen Mahlzeiten
+
+    // Schleife zum Extrahieren der Informationen für jede Mahlzeit
+    for (let i = 0; i < mealsInfos.length; i++) {
+        let name = mealsInfos[i]
+            .querySelector(".menu_name")
+            .innerHTML.split(
+                /<\/?\w+((\s+\w+(\s*=\s*(?:".*?"|'.*?'|[\^'">\s]+))?)+\s*|\s*)\/?>/
+            ); // Den Namen der Mahlzeit extrahieren und HTML-Tags entfernen
+
+        name = name
+            .filter((item) => item && !item.startsWith("(") && !item.includes("="))
+            .map((item) => item.trim())
+            .join(", "); // Den Namen bereinigen und formatieren
+
+        const price = mealsInfos[i].querySelector(".menu_preis").textContent; // Den Preis der Mahlzeit extrahieren
+        const vegetarian =
+            mealsInfos[i].attributes["data-arten"].value.includes("ve") ||
+            mealsInfos[i].attributes["data-arten"].value.includes("vn"); // Überprüfen, ob die Mahlzeit vegetarisch ist
+        const vegan = mealsInfos[i].attributes["data-arten"].value.includes("vn");
+        const location = mealsInfos[i].querySelector(".menu_art").textContent; // Den Ort der Mahlzeit extrahieren
+
+        const mealAllergens = [];
+
+        for (let x = 0; x < allergens.length; x++) {
+            if (
+                mealsInfos[i]
+                    .querySelector(".menu_name")
+                    .textContent.includes(allergens[x].code)
+            ) {
+                mealAllergens.push(allergens[x]);
+            }
+        }
+
+        // Die extrahierten Informationen zur Mahlzeit zum Array hinzufügen
+        mealsArray.push({
+            name: name,
+            price: price,
+            vegetarian: vegetarian,
+            vegan: vegan,
+            location: location,
+            allergens: mealAllergens,
+        });
+    }
+
+    return mealsArray;
+}
+
 
 const CACHE_TTL = process.env.CACHE_TTL || 1000 * 60 * 60 * 4;
 
