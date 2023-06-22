@@ -26,6 +26,9 @@ app.get('/meals', async (req, res, next) => {
         if (params.day) {
             data = data.filter(day => new Date(Date.parse(day.date)).getDay() === weekdays.indexOf(params.day.toLowerCase()));
         }
+        if (params.week) {
+            data = data.filter(day => day.week === parseInt(params.week));
+        }
 
         res.json(data);
     } catch (error) {

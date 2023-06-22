@@ -1,49 +1,52 @@
 const fetch = require("node-fetch");
 const jsdom = require("jsdom");
 
-// Die URL des Speiseplans
-const url = "https://studentenwerk.sh/de/mensen-in-luebeck?ort=3&mensa=8#mensaplan";
-
 // Funktion zum Abrufen des Speiseplans
 async function fetchSpeiseplan() {
-    // HTTP-Anfrage an die URL senden und HTML-Daten abrufen
-    const document = await fetch(url)
-        .then((res) => res.text()) // Die Antwort in Text umwandeln
-        .then((body) => new jsdom.JSDOM(body).window.document); // HTML-Dokument erstellen
-
     const result = []; // Array zum Speichern der Ergebnisse
 
-    const dates = getDates(); // Array der nächsten 6 Termine (ohne Samstag und Sonntag)
-    const allergens = getAllergens(document); // Array der Allergene
+    const weeks = [0, 1]; // Array mit den Wochen, für die der Speiseplan abgerufen werden soll
 
-    // Schleife zum Extrahieren der Mahlzeiten für jeden Termin
-    for (const date of dates) {
-        const meals = getMealsByDate(document, date); // Element mit den Mahlzeiten für das aktuelle Datum auswählen
-        const mealsArray = extractMealInformation(meals, allergens); // Array mit den extrahierten Mahlzeiten
+    for (const week of weeks) {
+        // URL für die aktuelle Woche generieren
+        const url = `https://studentenwerk.sh/de/mensen-in-luebeck?ort=3&mensa=8&nw=${week}#mensaplan`
+        // HTTP-Anfrage an die URL senden und HTML-Daten abrufen
+        const document = await fetch(url)
+            .then((res) => res.text()) // Die Antwort in Text umwandeln
+            .then((body) => new jsdom.JSDOM(body).window.document); // HTML-Dokument erstellen
 
-        // Die Ergebnisse für das aktuelle Datum zum Ergebnis-Array hinzufügen
-        result.push({
-            date: date,
-            meals: mealsArray,
-        });
+        const dates = getWeekDates(week); // Array der nächsten 6 Termine (ohne Samstag und Sonntag)
+        const allergens = getAllergens(document); // Array der Allergene
+
+        // Schleife zum Extrahieren der Mahlzeiten für jeden Termin
+        for (const date of dates) {
+            const meals = getMealsByDate(document, date); // Element mit den Mahlzeiten für das aktuelle Datum auswählen
+            const mealsArray = extractMealInformation(meals, allergens); // Array mit den extrahierten Mahlzeiten
+
+            // Die Ergebnisse für das aktuelle Datum zum Ergebnis-Array hinzufügen
+            result.push({
+                date: date,
+                week: week,
+                meals: mealsArray,
+            });
+        }
     }
 
     return result; // Das Ergebnis zurückgeben
 }
 
-// Funktion zum Generieren der nächsten 6 Termine (ohne Samstag und Sonntag)
-function getDates() {
+function getWeekDates(offset = 0) {
     const dates = [];
     const now = new Date(); // Aktuelles Datum und Uhrzeit
 
-    // Schleife zum Generieren der Termine für die nächsten 6 Tage (ohne Samstag und Sonntag)
-    for (let index = 0; index < 7 - now.getDay(); index++) {
+    // Setze now auf den letzten Montag und füge den Offset hinzu
+    now.setDate(now.getDate() - now.getDay() + 1 + offset * 7);
+
+    // Schleife zum Generieren der Termine für die nächsten 5 Werktage (Montag bis Freitag)
+    for (let index = 0; index < 5; index++) {
         const date = new Date(now);
         date.setDate(date.getDate() + index);
-        const day = date.getDay(); // Wochentag für das aktuelle Datum
-        if (day > 0 && day < 6) {
-            dates.push(date); // Das Datum zum Array hinzufügen, wenn es kein Samstag oder Sonntag ist
-        }
+        dates.push(date); // Das Datum zum Array hinzufügen
     }
 
     return dates;
@@ -124,7 +127,6 @@ function extractMealInformation(meals, allergens) {
 
     return mealsArray;
 }
-
 
 const CACHE_TTL = process.env.CACHE_TTL || 1000 * 60 * 60 * 4;
 
