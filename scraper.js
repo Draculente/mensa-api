@@ -67,6 +67,7 @@ async function fetchSpeiseplan() {
             const vegetarian =
                 mealsInfos[i].attributes["data-arten"].value.includes("ve") ||
                 mealsInfos[i].attributes["data-arten"].value.includes("vn"); // Überprüfen, ob die Mahlzeit vegetarisch ist
+            const vegan = mealsInfos[i].attributes["data-arten"].value.includes("vn");
             const location = mealsInfos[i].querySelector(".menu_art").textContent; // Den Ort der Mahlzeit extrahieren
 
             const mealAllergens = []
@@ -83,6 +84,7 @@ async function fetchSpeiseplan() {
                 name: name,
                 price: price,
                 vegetarian: vegetarian,
+                vegan: vegan,
                 location: location,
                 allergens: mealAllergens
             });
