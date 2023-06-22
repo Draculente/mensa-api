@@ -1,5 +1,6 @@
 const fetch = require("node-fetch");
 const jsdom = require("jsdom");
+const he = require("he");
 
 // Funktion zum Abrufen des Speiseplans
 async function fetchSpeiseplan() {
@@ -93,7 +94,10 @@ function extractMealInformation(meals, allergens) {
         name = name
             .filter((item) => item && !item.startsWith("(") && !item.includes("="))
             .map((item) => item.trim())
-            .join(", "); // Den Namen bereinigen und formatieren
+            .join(", ")
+            .replaceAll(/(\W)\1+/g,"$1"); // Den Namen bereinigen und formatieren
+
+        name = he.decode(name); // &amp; etc umwandeln
 
         const price = mealsInfos[i].querySelector(".menu_preis").textContent; // Den Preis der Mahlzeit extrahieren
         const vegetarian =
