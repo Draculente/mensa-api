@@ -14,6 +14,7 @@ spec:
     metadata:
       labels:
         app: speiseplan
+        commit: "{{ env.GITHUB_REF_NAME }}"
     spec:
       containers:
       - image: "ghcr.io/draculente/mensa-api:master"
