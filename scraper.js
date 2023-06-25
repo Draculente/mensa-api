@@ -22,6 +22,7 @@ async function fetchSpeiseplan() {
         // Schleife zum Extrahieren der Mahlzeiten für jeden Termin
         for (const date of dates) {
             const meals = getMealsByDate(document, date); // Element mit den Mahlzeiten für das aktuelle Datum auswählen
+            console.log(meals);
             const { open, meals: mealsArray } = extractMealInformation(meals, allergens); // Array mit den extrahierten Mahlzeiten
 
             // Die Ergebnisse für das aktuelle Datum zum Ergebnis-Array hinzufügen
@@ -41,11 +42,13 @@ function getWeekDates(offset = 0) {
     const dates = [];
     const now = new Date(); // Aktuelles Datum und Uhrzeit
 
-    // Setze now auf den letzten Montag und füge den Offset hinzu
-    now.setDate(now.getDate() - now.getDay() + 1 + offset * 7);
+    const realDayArray = [6, 0, 1, 2, 3, 4, 5]; // Array mit den Wochentagen (Sonntag bis Samstag)
 
-    // Schleife zum Generieren der Termine für die nächsten 5 Werktage (Montag bis Freitag)
-    for (let index = 0; index < 5; index++) {
+    // Setze now auf den letzten Montag und füge den Offset hinzu
+    now.setDate(now.getDate() - realDayArray[now.getDay()] + offset * 7);
+
+    // Schleife zum Generieren der Termine für die nächsten 7 Tage
+    for (let index = 0; index < 7; index++) {
         const date = new Date(now);
         date.setDate(date.getDate() + index);
         dates.push(date); // Das Datum zum Array hinzufügen
@@ -75,6 +78,7 @@ function getAllergens(document) {
 // Funktion zum Extrahieren der Mahlzeiten für ein bestimmtes Datum
 function getMealsByDate(document, date) {
     const isoDate = date.toISOString().slice(0, 10);
+    console.log(`[data-day="${isoDate}"]:not(.mb_day)`);
     const meals = document.querySelector(`[data-day="${isoDate}"]:not(.mb_day)`);
 
     return meals;
