@@ -22,12 +22,13 @@ async function fetchSpeiseplan() {
         // Schleife zum Extrahieren der Mahlzeiten für jeden Termin
         for (const date of dates) {
             const meals = getMealsByDate(document, date); // Element mit den Mahlzeiten für das aktuelle Datum auswählen
-            const mealsArray = extractMealInformation(meals, allergens); // Array mit den extrahierten Mahlzeiten
+            const { open, meals: mealsArray } = extractMealInformation(meals, allergens); // Array mit den extrahierten Mahlzeiten
 
             // Die Ergebnisse für das aktuelle Datum zum Ergebnis-Array hinzufügen
             result.push({
-                date: date,
-                week: week,
+                date,
+                week,
+                open,
                 meals: mealsArray,
             });
         }
@@ -56,7 +57,8 @@ function getWeekDates(offset = 0) {
 // Funktion zum Extrahieren der Allergene aus dem Dokument
 function getAllergens(document) {
     const allergens = [];
-    const allergeneElements = document.querySelector(".mbf_content").children;
+    const allergeneParent = document.querySelector(".mbf_content");
+    const allergeneElements = allergeneParent ? allergeneParent.children : [];
 
     for (let i = 0; i < allergeneElements.length; i++) {
         const allergene = {
@@ -80,6 +82,11 @@ function getMealsByDate(document, date) {
 
 // Funktion zum Extrahieren der Informationen für jede Mahlzeit
 function extractMealInformation(meals, allergens) {
+    if (!meals) return { open: true, meals: [] }; // Wenn keine Mahlzeiten gefunden wurden, wird ein leeres Array zurückgegeben
+
+    const dayIsClosed = meals.querySelector(".mensa_menu_geschlossen"); // Überprüfen, ob die Mensa an diesem Tag geschlossen ist
+    if (dayIsClosed) return { open: false, meals: [] }; // Wenn die Mensa geschlossen ist, wird ein leeres Array zurückgegeben
+
     const mealsInfos = meals.getElementsByClassName("mensa_menu_detail"); // Alle Mahlzeiteninformationen auswählen
     const mealsArray = []; // Array zum Speichern der einzelnen Mahlzeiten
 
@@ -95,7 +102,7 @@ function extractMealInformation(meals, allergens) {
             .filter((item) => item && !item.startsWith("(") && !item.includes("="))
             .map((item) => item.trim())
             .join(", ")
-            .replaceAll(/(\W)\1+/g,"$1"); // Den Namen bereinigen und formatieren
+            .replaceAll(/(\W)\1+/g, "$1"); // Den Namen bereinigen und formatieren
 
         name = he.decode(name); // &amp; etc umwandeln
 
@@ -129,7 +136,7 @@ function extractMealInformation(meals, allergens) {
         });
     }
 
-    return mealsArray;
+    return { open: true, meals: mealsArray };
 }
 
 const CACHE_TTL = process.env.CACHE_TTL || 1000 * 60 * 60 * 4;
