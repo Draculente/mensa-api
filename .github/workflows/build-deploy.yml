@@ -69,11 +69,12 @@ jobs:
       image: thlmylab/swakkd:stable
       env:
         KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG }}
-        KUBECONFIG: "~/.kube/config"
+        KUBECONFIG: "/github/home/.kube/config"
         COMMIT_REF: ${{ github.ref_name }}
     permissions:
       contents: read
     steps:
+      - uses: actions/checkout@v3
       - run: mkdir -p ~/.kube/ && echo "$KUBECONFIG_CONTENT" > ~/.kube/config
       - run: mo deploy/service.yml| kubectl apply -f -
       - run: mo deploy/ingress.yml| kubectl apply -f -
