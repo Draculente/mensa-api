@@ -5,6 +5,7 @@ metadata:
   namespace: simple-tools
   labels:
     app: speiseplan
+    commit: "{{ UNIQUE_TAG }}"
 spec:
   replicas: 1
   selector:
@@ -14,7 +15,7 @@ spec:
     metadata:
       labels:
         app: speiseplan
-        commit: "{{ COMMIT_REF }}"
+        commit: "{{ UNIQUE_TAG }}"
     spec:
       containers:
       - image: "ghcr.io/draculente/mensa-api:master"

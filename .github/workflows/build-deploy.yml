@@ -70,7 +70,7 @@ jobs:
       env:
         KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG }}
         KUBECONFIG: "/github/home/.kube/config"
-        COMMIT_REF: ${{ github.ref_name }}
+        UNIQUE_TAG: "${{ github.sha }}-${{ github.run_number }}-${{ github.run_attempt }}"
     permissions:
       contents: read
     steps:
