@@ -64,14 +64,17 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
+    needs: build
     container:
       image: thlmylab/swakkd:stable
       env:
-        KUBECONFIG: ${{ secrets.KUBECONFIG }}
+        KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG }}
+        KUBECONFIG: "~/.kube/config"
         COMMIT_REF: ${{ github.ref_name }}
     permissions:
       contents: read
     steps:
+      - run: echo "$KUBECONFIG_CONTENT" > ~/.kube/config
       - run: mo deploy/service.yml| kubectl apply -f -
       - run: mo deploy/ingress.yml| kubectl apply -f -
       - run: mo deploy/deployment.yml| kubectl delete -f - || true
