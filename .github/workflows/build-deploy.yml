@@ -74,7 +74,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - run: echo "$KUBECONFIG_CONTENT" > ~/.kube/config
+      - run: mkdir -p ~/.kube/ && echo "$KUBECONFIG_CONTENT" > ~/.kube/config
       - run: mo deploy/service.yml| kubectl apply -f -
       - run: mo deploy/ingress.yml| kubectl apply -f -
       - run: mo deploy/deployment.yml| kubectl delete -f - || true
