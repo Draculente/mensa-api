@@ -14,9 +14,9 @@ interface Meal {
     allergens: Allergenes[];
 }
 
-enum HasData {
-    NO_DATA = "no_data",
-    HAS_DATA = "has_data",
+enum HasError {
+    HAS_ERROR = "has_error",
+    NO_ERROR = "no_error",
 }
 
 enum Week {
@@ -28,7 +28,7 @@ interface Day {
     date: Date;
     week: Week;
     open: boolean;
-    hasData: HasData;
+    hasError: HasError;
     meals: Meal[];
 }
 
@@ -54,7 +54,7 @@ async function fetchSpeiseplan(): Promise<Speiseplan> {
         // Schleife zum Extrahieren der Mahlzeiten für jeden Termin
         for (const date of dates) {
             const meals = getMealsByDate(document, date); // Element mit den Mahlzeiten für das aktuelle Datum auswählen
-            const { open, meals: mealsArray, hasData } = extractMealInformation(meals, allergens); // Array mit den extrahierten Mahlzeiten
+            const { open, meals: mealsArray, hasError } = extractMealInformation(meals, allergens); // Array mit den extrahierten Mahlzeiten
 
             // Die Ergebnisse für das aktuelle Datum zum Ergebnis-Array hinzufügen
             result.push({
@@ -62,7 +62,7 @@ async function fetchSpeiseplan(): Promise<Speiseplan> {
                 week: week === 0 ? Week.CURRENT_WEEK : Week.NEXT_WEEK,
                 open: open ?? false,
                 meals: mealsArray!,
-                hasData: hasData ?? HasData.NO_DATA,
+                hasError: hasError ?? HasError.HAS_ERROR,
             });
         }
     }
@@ -120,7 +120,18 @@ function getMealsByDate(document: Document, date: Date): Opt<Element> {
 
 // Funktion zum Extrahieren der Informationen für jede Mahlzeit
 function extractMealInformation(meals: Opt<Element>, allergens: Allergenes[]): Partial<Day> {
-    if (meals.isNone()) return { open: true, meals: [], hasData: HasData.NO_DATA }; // Wenn keine Mahlzeiten gefunden wurden, wird ein leeres Array zurückgegeben
+    if (meals.isNone()) return { open: true, meals: [], hasError: HasError.HAS_ERROR }; // Wenn keine Mahlzeiten gefunden wurden, wird ein leeres Array zurückgegeben
+
+    // Prüfen, ob die Mensa geschlossen ist
+    const closed = meals.map((meals) => {
+        const closedElement = meals.querySelector(".mensa_menu_geschlossen");
+        return closedElement && closedElement.innerHTML.includes("geschlossen");;
+    }).orElse(false);
+
+    // Wenn die Mensa geschlossen ist, wird ein leeres Array zurückgegeben
+    if (closed) {
+        return { open: false, meals: [], hasError: HasError.NO_ERROR };
+    }
 
     const mealsArray: Opt<Meal[]> = meals.map((meals) => {
         const mealsInfos = htmlCollectionToArray(meals.getElementsByClassName("mensa_menu_detail")); // Alle Mahlzeiteninformationen auswählen
@@ -133,7 +144,9 @@ function extractMealInformation(meals: Opt<Element>, allergens: Allergenes[]): P
                 ).filter((item) => item && !item.startsWith("(") && !item.includes("="))
                 .map((item) => item.trim())
                 .join(", ")
-                .replaceAll(/(\W)\1+/g, "$1")).map(he.decode).orElse("Error getting name"); // Den Namen der Mahlzeit extrahieren und HTML-Tags entfernen
+                .replaceAll(/(\W)\1+/g, "$1"))
+                .map(he.decode)
+                .orElse("Error getting name"); // Den Namen der Mahlzeit extrahieren und HTML-Tags entfernen
 
             const price = opt(mealInfo.querySelector(".menu_preis")?.textContent).map((price) => price.trim()).orElse("Error getting price"); // Den Preis der Mahlzeit extrahieren
             const vegan = mealInfo.getAttribute("data-arten")?.includes("vn") ?? false; // Überprüfen, ob die Mahlzeit vegan ist
@@ -159,7 +172,7 @@ function extractMealInformation(meals: Opt<Element>, allergens: Allergenes[]): P
 
     }); // Die Mahlzeiteninformationen extrahieren
 
-    return { open: true, meals: mealsArray.orElse([]), hasData: mealsArray.map(() => HasData.HAS_DATA).orElse(HasData.NO_DATA) }; // Das Array mit den Mahlzeiten zurückgeben
+    return { open: true, meals: mealsArray.orElse([]), hasError: mealsArray.map(() => HasError.NO_ERROR).orElse(HasError.HAS_ERROR) }; // Das Array mit den Mahlzeiten zurückgeben
 }
 
 const CACHE_TTL: number = +(process.env.CACHE_TTL || 1000 * 60 * 60 * 4);
