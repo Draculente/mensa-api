@@ -9,4 +9,7 @@ COPY . /app
 # Install dependencies
 RUN npm ci
 
-CMD [ "node", "." ]
+# Build app
+RUN npm run build
+
+CMD [ "node", "./dist" ]

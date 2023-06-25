@@ -1,8 +1,7 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const { errorHandler, notFound } = require('./middleware.js');
-const getSpeiseplan = require('./scraper');
+import express, { Request, Response, NextFunction } from 'express';
+import cors from 'cors';
+import { errorHandler, notFound } from './middleware.js';
+import { getSpeiseplan } from './scraper.js';
 
 const app = express();
 app.use(cors());
@@ -12,22 +11,22 @@ const PORT = process.env.PORT || 3000;
 
 const weekdays = ["so", "mo", "di", "mi", "do", "fr", "sa"];
 
-app.get('/', (req, res) => {
+app.get('/', (req: Request, res: Response) => {
     res.json({
         meals: '/meals',
     })
 });
 
-app.get('/meals', async (req, res, next) => {
+app.get('/meals', async (req: Request, res: Response, next: NextFunction) => {
     try {
         let data = await getSpeiseplan();
 
         const params = req.query;
         if (params.day) {
-            data = data.filter(day => new Date(Date.parse(day.date)).getDay() === weekdays.indexOf(params.day.toLowerCase()));
+            data = data.filter(day => new Date(day.date).getDay() === weekdays.indexOf(params.day?.toString().toLowerCase() ?? ""));
         }
         if (params.week) {
-            data = data.filter(day => day.week === parseInt(params.week));
+            data = data.filter(day => day.week === params.week?.toString());
         }
 
         res.json(data);
