@@ -13,8 +13,8 @@ Returns a list of all meals.
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| `day` | string | The day of the week. Valid values are 'mo', 'di', 'mi', 'do' and 'fr'. |
-| `week` | int | The week. Valid values are 0 for the current week an 1 for the next |
+| `day` | string | The day of the week. Valid values are `mo`, `di`, `mi`, `do` and `fr`. |
+| `week` | int | The week. Valid values are `current` for the current week an `next` for the next |
 
 ##### Example
 
