@@ -1,7 +1,7 @@
 import fetch from "node-fetch";
 import jsdom from "jsdom";
 import he from "he";
-import { Opt, none, opt } from "ts-opt";
+import {Opt, none, opt} from "ts-opt";
 
 interface Allergenes {
     code: string;
@@ -35,14 +35,14 @@ interface Day {
 type Speiseplan = Day[];
 
 // Funktion zum Abrufen des Speiseplans
-async function fetchSpeiseplan(): Promise<Speiseplan> {
+async function fetchSpeiseplan(ort: number): Promise<Speiseplan> {
     const result: Speiseplan = []; // Array zum Speichern der Ergebnisse
 
     const weeks = [0, 1]; // Array mit den Wochen, für die der Speiseplan abgerufen werden soll
 
     for (const week of weeks) {
         // URL für die aktuelle Woche generieren
-        const url = `https://studentenwerk.sh/de/mensen-in-luebeck?ort=3&mensa=8&nw=${week}#mensaplan`
+        const url = `https://studentenwerk.sh/de/mensen-in-luebeck?ort=3&mensa=${ort == 0 ? 8 : 9}&nw=${week}#mensaplan`
         // HTTP-Anfrage an die URL senden und HTML-Daten abrufen
         const document = await fetch(url)
             .then((res) => res.text()) // Die Antwort in Text umwandeln
@@ -54,7 +54,7 @@ async function fetchSpeiseplan(): Promise<Speiseplan> {
         // Schleife zum Extrahieren der Mahlzeiten für jeden Termin
         for (const date of dates) {
             const meals = getMealsByDate(document, date); // Element mit den Mahlzeiten für das aktuelle Datum auswählen
-            const { open, meals: mealsArray, hasError } = extractMealInformation(meals, allergens); // Array mit den extrahierten Mahlzeiten
+            const {open, meals: mealsArray, hasError} = extractMealInformation(meals, allergens); // Array mit den extrahierten Mahlzeiten
 
             // Die Ergebnisse für das aktuelle Datum zum Ergebnis-Array hinzufügen
             result.push({
@@ -120,17 +120,18 @@ function getMealsByDate(document: Document, date: Date): Opt<Element> {
 
 // Funktion zum Extrahieren der Informationen für jede Mahlzeit
 function extractMealInformation(meals: Opt<Element>, allergens: Allergenes[]): Partial<Day> {
-    if (meals.isNone()) return { open: true, meals: [], hasError: HasError.HAS_ERROR }; // Wenn keine Mahlzeiten gefunden wurden, wird ein leeres Array zurückgegeben
+    if (meals.isNone()) return {open: true, meals: [], hasError: HasError.HAS_ERROR}; // Wenn keine Mahlzeiten gefunden wurden, wird ein leeres Array zurückgegeben
 
     // Prüfen, ob die Mensa geschlossen ist
     const closed = meals.map((meals) => {
         const closedElement = meals.querySelector(".mensa_menu_geschlossen");
-        return closedElement && closedElement.innerHTML.includes("geschlossen");;
+        return closedElement && closedElement.innerHTML.includes("geschlossen");
+        ;
     }).orElse(false);
 
     // Wenn die Mensa geschlossen ist, wird ein leeres Array zurückgegeben
     if (closed) {
-        return { open: false, meals: [], hasError: HasError.NO_ERROR };
+        return {open: false, meals: [], hasError: HasError.NO_ERROR};
     }
 
     const mealsArray: Opt<Meal[]> = meals.map((meals) => {
@@ -172,7 +173,11 @@ function extractMealInformation(meals: Opt<Element>, allergens: Allergenes[]): P
 
     }); // Die Mahlzeiteninformationen extrahieren
 
-    return { open: true, meals: mealsArray.orElse([]), hasError: mealsArray.map(() => HasError.NO_ERROR).orElse(HasError.HAS_ERROR) }; // Das Array mit den Mahlzeiten zurückgeben
+    return {
+        open: true,
+        meals: mealsArray.orElse([]),
+        hasError: mealsArray.map(() => HasError.NO_ERROR).orElse(HasError.HAS_ERROR)
+    }; // Das Array mit den Mahlzeiten zurückgeben
 }
 
 const CACHE_TTL: number = +(process.env.CACHE_TTL || 1000 * 60 * 60 * 4);
@@ -182,24 +187,45 @@ interface Cache {
     lastUpdated: number;
 }
 
-let cache: Opt<Cache> = none
+let cache_th: Opt<Cache> = none
+let cache_mh: Opt<Cache> = none
 
-export function getSpeiseplan(): Promise<Speiseplan> {
-    return new Promise((resolve, reject) => {
-        cache.filter(c => c.lastUpdated > Date.now() - CACHE_TTL).onBoth(
-            // Cache-Hit
-            (cache) => {
-                resolve(cache.data);
-            },
-            // Cache-Miss
-            async () => {
-                const data = await fetchSpeiseplan();
-                cache = opt({
-                    data,
-                    lastUpdated: Date.now(),
-                });
-                resolve(data);
-            }
-        );
-    });
+export function getSpeiseplan(ort: number): Promise<Speiseplan> {
+    if (ort == 0)
+        return new Promise((resolve, reject) => {
+            cache_th.filter(c => c.lastUpdated > Date.now() - CACHE_TTL).onBoth(
+                // Cache-Hit
+                (cache) => {
+                    resolve(cache.data);
+                },
+                // Cache-Miss
+                async () => {
+                    const data = await fetchSpeiseplan(0);
+                    cache_th = opt({
+                        data,
+                        lastUpdated: Date.now(),
+                    });
+                    resolve(data);
+                }
+            );
+        });
+    else
+        return new Promise((resolve, reject) => {
+            cache_mh.filter(c => c.lastUpdated > Date.now() - CACHE_TTL).onBoth(
+                // Cache-Hit
+                (cache) => {
+                    resolve(cache.data);
+                },
+                // Cache-Miss
+                async () => {
+                    const data = await fetchSpeiseplan(1);
+                    cache_mh = opt({
+                        data,
+                        lastUpdated: Date.now(),
+                    });
+                    resolve(data);
+                }
+            );
+        });
+
 }

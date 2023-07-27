@@ -1,7 +1,7 @@
-import express, { Request, Response, NextFunction } from 'express';
+import express, {Request, Response, NextFunction} from 'express';
 import cors from 'cors';
-import { errorHandler, notFound } from './middleware.js';
-import { getSpeiseplan } from './scraper.js';
+import {errorHandler, notFound} from './middleware.js';
+import {getSpeiseplan} from './scraper.js';
 
 const app = express();
 app.use(cors());
@@ -19,9 +19,13 @@ app.get('/', (req: Request, res: Response) => {
 
 app.get('/meals', async (req: Request, res: Response, next: NextFunction) => {
     try {
-        let data = await getSpeiseplan();
-
+        let data = null;
         const params = req.query;
+        if (params.mensa == "mh") {
+            data = await getSpeiseplan(1)
+        } else
+            data = await getSpeiseplan(0);
+
         if (params.day) {
             data = data.filter(day => new Date(day.date).getDay() === weekdays.indexOf(params.day?.toString().toLowerCase() ?? ""));
         }

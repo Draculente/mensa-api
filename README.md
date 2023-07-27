@@ -1,5 +1,6 @@
-Dieses Projekt ist ein Web-Scraper, der die Website der Mensa der Hochschule Lübeck durchsucht und Informationen zum Speiseplan extrahiert. Es ermöglicht den Zugriff auf die aktuellen Menüs und deren Details, wie z.B. Namen, Preise und vegetarische Optionen.
-
+Dieses Projekt ist ein Web-Scraper, der die Website der Mensa der Hochschule Lübeck durchsucht und Informationen zum
+Speiseplan extrahiert. Es ermöglicht den Zugriff auf die aktuellen Menüs und deren Details, wie z.B. Namen, Preise und
+vegetarische Optionen.
 
 ## API
 
@@ -11,10 +12,11 @@ Returns a list of all meals.
 
 ##### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| `day` | string | The day of the week. Valid values are `mo`, `di`, `mi`, `do` and `fr`. |
-| `week` | string | The week. Valid values are `current` for the current week and `next` for the next |
+| Name    | Type   | Description                                                                                                                               |
+|---------|--------|-------------------------------------------------------------------------------------------------------------------------------------------|
+| `day`   | string | The day of the week. Valid values are `mo`, `di`, `mi`, `do` and `fr`.                                                                    |
+| `week`  | string | The week. Valid values are `current` for the current week and `next` for the next                                                         |
+| `mensa` | string | Location. Valid values are `mh` for the cafeteria in the 'Musikhochschule'. everything else defaults back to 'Mensa Lübeck mit Cafeteria' |
 
 ##### Example
 
@@ -25,6 +27,7 @@ curl https://speiseplan.mcloud.digital/meals?day=fr | jq
 ## Local Setup
 
 ### Requirements
+
 - Node
 - npm
 
@@ -44,7 +47,8 @@ Per default the app will run on port 3000. You can change this by setting the `P
 
 ## Deployment
 
-The app is deployed on a kubernetes cluster. To deploy a new version, just push to the master branch. The cluster will automatically pull the latest version and restart the app.  
+The app is deployed on a kubernetes cluster. To deploy a new version, just push to the master branch. The cluster will
+automatically pull the latest version and restart the app.
 
 The app is available at https://speiseplan.mcloud.digital .
 
