@@ -1,9 +1,19 @@
 import fetch from "node-fetch";
 import jsdom from "jsdom";
 import he from "he";
-import {Opt, none, opt} from "ts-opt";
+import { Opt, none, opt } from "ts-opt";
 
-interface Allergenes {
+export enum Ort {
+    TH = 8,
+    MH = 9,
+}
+
+interface MensaData {
+    speiseplan: Speiseplan;
+    allergens: Allergens[];
+}
+
+interface Allergens {
     code: string;
     name: string;
 }
@@ -11,7 +21,7 @@ interface Allergenes {
 interface Meal {
     name: string;
     price: string;
-    allergens: Allergenes[];
+    allergens: Allergens[];
 }
 
 enum HasError {
@@ -24,7 +34,7 @@ enum Week {
     NEXT_WEEK = "next",
 }
 
-interface Day {
+export interface Day {
     date: Date;
     week: Week;
     open: boolean;
@@ -32,29 +42,39 @@ interface Day {
     meals: Meal[];
 }
 
-type Speiseplan = Day[];
+export type Speiseplan = Day[];
+
+async function fetchDocument(url: string): Promise<Document> {
+    // HTTP-Anfrage an die URL senden und HTML-Daten abrufen
+    return await fetch(url)
+        .then((res) => res.text()) // Die Antwort in Text umwandeln
+        .then((body) => new jsdom.JSDOM(body).window.document); // HTML-Dokument erstellen
+}
+
+async function fetchMensaData(ort: Ort): Promise<MensaData> {
+    return { speiseplan: await fetchSpeiseplan(ort), allergens: await fetchAllergens(ort) };
+}
 
 // Funktion zum Abrufen des Speiseplans
-async function fetchSpeiseplan(ort: number): Promise<Speiseplan> {
+async function fetchSpeiseplan(ort: Ort): Promise<Speiseplan> {
     const result: Speiseplan = []; // Array zum Speichern der Ergebnisse
 
     const weeks = [0, 1]; // Array mit den Wochen, für die der Speiseplan abgerufen werden soll
 
     for (const week of weeks) {
         // URL für die aktuelle Woche generieren
-        const url = `https://studentenwerk.sh/de/mensen-in-luebeck?ort=3&mensa=${ort == 0 ? 8 : 9}&nw=${week}#mensaplan`
-        // HTTP-Anfrage an die URL senden und HTML-Daten abrufen
-        const document = await fetch(url)
-            .then((res) => res.text()) // Die Antwort in Text umwandeln
-            .then((body) => new jsdom.JSDOM(body).window.document); // HTML-Dokument erstellen
+        const url = `https://studentenwerk.sh/de/mensen-in-luebeck?ort=3&mensa=${ort}&nw=${week}#mensaplan`
+
+        // HTML-Dokument abrufen
+        const document = await fetchDocument(url);
 
         const dates = getWeekDates(week); // Array der nächsten 6 Termine (ohne Samstag und Sonntag)
-        const allergens = getAllergens(document); // Array der Allergene
+        const allergens = parseAllergens(document); // Array der Allergene
 
         // Schleife zum Extrahieren der Mahlzeiten für jeden Termin
         for (const date of dates) {
             const meals = getMealsByDate(document, date); // Element mit den Mahlzeiten für das aktuelle Datum auswählen
-            const {open, meals: mealsArray, hasError} = extractMealInformation(meals, allergens); // Array mit den extrahierten Mahlzeiten
+            const { open, meals: mealsArray, hasError } = extractMealInformation(meals, allergens); // Array mit den extrahierten Mahlzeiten
 
             // Die Ergebnisse für das aktuelle Datum zum Ergebnis-Array hinzufügen
             result.push({
@@ -68,6 +88,12 @@ async function fetchSpeiseplan(ort: number): Promise<Speiseplan> {
     }
 
     return result; // Das Ergebnis zurückgeben
+}
+
+async function fetchAllergens(ort: Ort): Promise<Allergens[]> {
+    const url = `https://studentenwerk.sh/de/mensen-in-luebeck?ort=3&mensa=${ort}&nw=0#mensaplan`
+    const document = await fetchDocument(url);
+    return parseAllergens(document);
 }
 
 function getWeekDates(offset = 0): Date[] {
@@ -90,7 +116,7 @@ function getWeekDates(offset = 0): Date[] {
 }
 
 // Funktion zum Extrahieren der Allergene aus dem Dokument
-function getAllergens(document: Document): Allergenes[] {
+function parseAllergens(document: Document): Allergens[] {
     const allergeneParent = document.querySelector(".mbf_content");
     const allergeneElements: Opt<Element[]> = opt(allergeneParent?.children).map(htmlCollectionToArray);
 
@@ -119,8 +145,8 @@ function getMealsByDate(document: Document, date: Date): Opt<Element> {
 }
 
 // Funktion zum Extrahieren der Informationen für jede Mahlzeit
-function extractMealInformation(meals: Opt<Element>, allergens: Allergenes[]): Partial<Day> {
-    if (meals.isNone()) return {open: true, meals: [], hasError: HasError.HAS_ERROR}; // Wenn keine Mahlzeiten gefunden wurden, wird ein leeres Array zurückgegeben
+function extractMealInformation(meals: Opt<Element>, allergens: Allergens[]): Partial<Day> {
+    if (meals.isNone()) return { open: true, meals: [], hasError: HasError.HAS_ERROR }; // Wenn keine Mahlzeiten gefunden wurden, wird ein leeres Array zurückgegeben
 
     // Prüfen, ob die Mensa geschlossen ist
     const closed = meals.map((meals) => {
@@ -131,7 +157,7 @@ function extractMealInformation(meals: Opt<Element>, allergens: Allergenes[]): P
 
     // Wenn die Mensa geschlossen ist, wird ein leeres Array zurückgegeben
     if (closed) {
-        return {open: false, meals: [], hasError: HasError.NO_ERROR};
+        return { open: false, meals: [], hasError: HasError.NO_ERROR };
     }
 
     const mealsArray: Opt<Meal[]> = meals.map((meals) => {
@@ -182,50 +208,41 @@ function extractMealInformation(meals: Opt<Element>, allergens: Allergenes[]): P
 
 const CACHE_TTL: number = +(process.env.CACHE_TTL || 1000 * 60 * 60 * 4);
 
-interface Cache {
-    data: Speiseplan;
+interface Cache<T> {
+    data: T;
     lastUpdated: number;
 }
 
-let cache_th: Opt<Cache> = none
-let cache_mh: Opt<Cache> = none
+interface CacheStore {
+    [Ort.TH]: Opt<Cache<MensaData>>;
+    [Ort.MH]: Opt<Cache<MensaData>>;
+}
 
-export function getSpeiseplan(ort: number): Promise<Speiseplan> {
-    if (ort == 0)
-        return new Promise((resolve, reject) => {
-            cache_th.filter(c => c.lastUpdated > Date.now() - CACHE_TTL).onBoth(
-                // Cache-Hit
-                (cache) => {
-                    resolve(cache.data);
-                },
-                // Cache-Miss
-                async () => {
-                    const data = await fetchSpeiseplan(0);
-                    cache_th = opt({
-                        data,
-                        lastUpdated: Date.now(),
-                    });
-                    resolve(data);
-                }
-            );
-        });
-    else
-        return new Promise((resolve, reject) => {
-            cache_mh.filter(c => c.lastUpdated > Date.now() - CACHE_TTL).onBoth(
-                // Cache-Hit
-                (cache) => {
-                    resolve(cache.data);
-                },
-                // Cache-Miss
-                async () => {
-                    const data = await fetchSpeiseplan(1);
-                    cache_mh = opt({
-                        data,
-                        lastUpdated: Date.now(),
-                    });
-                    resolve(data);
-                }
-            );
-        });
+let cache_store: CacheStore = {
+    [Ort.TH]: none,
+    [Ort.MH]: none,
+}
+
+export function getMensaData(ort: Ort): Promise<MensaData> {
+    return new Promise((resolve, reject) => {
+        cache_store[ort].filter(c => c.lastUpdated > Date.now() - CACHE_TTL).onBoth(
+            // Cache-Hit
+            (cache) => {
+                console.log("Cache-Hit");
+                resolve(cache.data);
+            },
+
+            // Cache-Miss
+            async () => {
+                console.log("Cache-Miss")
+                const data = await fetchMensaData(ort);
+                cache_store[ort] = opt({
+                    data,
+                    lastUpdated: Date.now(),
+                });
+                resolve(data);
+            }
+        );
+    });
 
 }
