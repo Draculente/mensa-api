@@ -1,7 +1,7 @@
-import express, {Request, Response, NextFunction} from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
-import {errorHandler, notFound} from './middleware.js';
-import {getSpeiseplan} from './scraper.js';
+import { errorHandler, notFound } from './middleware.js';
+import { Ort, getMensaData } from './scraper.js';
 
 const app = express();
 app.use(cors());
@@ -21,10 +21,8 @@ app.get('/meals', async (req: Request, res: Response, next: NextFunction) => {
     try {
         let data = null;
         const params = req.query;
-        if (params.mensa == "mh") {
-            data = await getSpeiseplan(1)
-        } else
-            data = await getSpeiseplan(0);
+        data = await getMensaData(params.mensa === "mh" ? Ort.MH : Ort.TH);
+        data = data.speiseplan
 
         if (params.day) {
             data = data.filter(day => new Date(day.date).getDay() === weekdays.indexOf(params.day?.toString().toLowerCase() ?? ""));
@@ -38,6 +36,20 @@ app.get('/meals', async (req: Request, res: Response, next: NextFunction) => {
         next(error);
     }
 });
+
+app.get('/allergens', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        let data = null;
+        const params = req.query;
+        data = await getMensaData(params.mensa === "mh" ? Ort.MH : Ort.TH);
+        data = data.allergens
+
+        res.json(data);
+    } catch (error) {
+        next(error);
+    }
+});
+
 
 app.use(notFound);
 app.use(errorHandler);
