@@ -13,7 +13,7 @@ Returns a list of all meals.
 ##### Parameters
 
 | Name    | Type   | Description                                                                                                                               |
-|---------|--------|-------------------------------------------------------------------------------------------------------------------------------------------|
+| ------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | `day`   | string | The day of the week. Valid values are `mo`, `di`, `mi`, `do` and `fr`.                                                                    |
 | `week`  | string | The week. Valid values are `current` for the current week and `next` for the next                                                         |
 | `mensa` | string | Location. Valid values are `mh` for the cafeteria in the 'Musikhochschule'. everything else defaults back to 'Mensa Lübeck mit Cafeteria' |
@@ -40,7 +40,7 @@ npm install
 ### Run
 
 ```bash
-node .
+npm run dev
 ```
 
 Per default the app will run on port 3000. You can change this by setting the `PORT` environment variable.
