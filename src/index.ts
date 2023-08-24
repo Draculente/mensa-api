@@ -14,6 +14,7 @@ const weekdays = ["so", "mo", "di", "mi", "do", "fr", "sa"];
 app.get('/', (req: Request, res: Response) => {
     res.json({
         meals: '/meals',
+        allergens: '/allergens'
     })
 });
 
