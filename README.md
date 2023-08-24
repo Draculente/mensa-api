@@ -10,6 +10,10 @@ vegetarische Optionen.
 
 Returns a list of all meals.
 
+#### GET /allergens
+
+Returns a list of all allergens.
+
 ##### Parameters
 
 | Name    | Type   | Description                                                                                                                               |
