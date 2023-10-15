@@ -206,7 +206,7 @@ function extractMealInformation(meals: Opt<Element>, allergens: Allergens[]): Pa
     }; // Das Array mit den Mahlzeiten zurückgeben
 }
 
-const CACHE_TTL: number = +(process.env.CACHE_TTL || 1000 * 60 * 60 * 4);
+const CACHE_TTL: number = +(process.env.CACHE_TTL || 1000 * 60 * 10);
 
 interface Cache<T> {
     data: T;
