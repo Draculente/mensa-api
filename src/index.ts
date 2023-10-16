@@ -9,7 +9,12 @@ app.use(cors());
 
 const PORT = process.env.PORT || 3000;
 
-const weekdays = ["so", "mo", "di", "mi", "do", "fr", "sa"];
+const weekdays = [
+    ["so", "mo", "di", "mi", "do", "fr", "sa"],
+    ["su", "mo", "tu", "we", "th", "fr", "sa"],
+    ["sun", "mon", "tue", "wed", "thu", "fri", "sat"],
+    ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+]
 
 app.get('/', (req: Request, res: Response) => {
     res.json({
@@ -26,7 +31,7 @@ app.get('/meals', async (req: Request, res: Response, next: NextFunction) => {
         data = data.speiseplan
 
         if (params.day) {
-            data = data.filter(day => new Date(day.date).getDay() === weekdays.indexOf(params.day?.toString().toLowerCase() ?? ""));
+            data = data.filter(day => new Date(day.date).getDay() === weekdays.find(weekday => weekday.includes(params.day?.toString().toLowerCase() ?? ""))?.indexOf(params.day?.toString().toLowerCase() ?? ""));
         }
         if (params.week) {
             data = data.filter(day => day.week === params.week?.toString());
