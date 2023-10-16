@@ -18,7 +18,7 @@ Returns a list of all allergens.
 
 | Name    | Type   | Description                                                                                                                               |
 | ------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `day`   | string | The day of the week. Valid values are `mo`, `di`, `mi`, `do`, `fr`, `sa` and `so`.                                                                    |
+| `day`   | string | The day of the week. Valid values are `mo`, `tu`, `we`, `th`, `fr`, `sa` and `so`.                                                                    |
 | `week`  | string | The week. Valid values are `current` for the current week and `next` for the next                                                         |
 | `mensa` | string | Location. Valid values are `mh` for the cafeteria in the 'Musikhochschule'. everything else defaults back to 'Mensa Lübeck mit Cafeteria' |
 
