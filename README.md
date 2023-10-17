@@ -22,11 +22,39 @@ Returns a list of all allergens.
 | `week`  | string | The week. Valid values are `current` for the current week and `next` for the next                                                         |
 | `mensa` | string | Location. Valid values are `mh` for the cafeteria in the 'Musikhochschule'. everything else defaults back to 'Mensa Lübeck mit Cafeteria' |
 
+#### GET /refresh
+
+Refresh all caches.
+
+#### GET /allergens/last-update
+
+Returns the ISO Date of the last update of the allergens cache.
+
+#### GET /meals/last-update
+
+Returns the ISO Date of the last update of the meals cache.
+
+##### Parameters
+
+| Name    | Type   | Description                                                                                                                               |
+| ------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `mensa` | string | Location. Valid values are `mh` for the cafeteria in the 'Musikhochschule'. everything else defaults back to 'Mensa Lübeck mit Cafeteria' |
+
 ##### Example
 
 ```bash
 curl https://speiseplan.mcloud.digital/meals?day=fr | jq
 ```
+
+## Configuration
+
+The app is configured via environment variables. The following variables are available:
+
+| Name              | Description                                                                                                                               |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`            | The port the app will listen on. Defaults to `3000`.                                                                                      |
+| `CACHE_TTL_MENU`       | The time to live of the menu cache containing the meals in milliseconds. Defaults to `1000 * 60 * 10`.                                                                             |
+| `CACHE_TTL_ALLERGENS` | The time to live of the allergens cache in milliseconds. Defaults to `1000 * 60 * 60 * 24`.                                                                             |
 
 ## Local Setup
 
