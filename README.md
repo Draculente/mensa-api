@@ -1,6 +1,4 @@
-Dieses Projekt ist ein Web-Scraper, der die Website der Mensa der Hochschule Lübeck durchsucht und Informationen zum
-Speiseplan extrahiert. Es ermöglicht den Zugriff auf die aktuellen Menüs und deren Details, wie z.B. Namen, Preise und
-vegetarische Optionen.
+This project is a web scraper that searches the website of the Mensa of the University of Lübeck and extracts information about the menu. It allows access to the current menus and their details, such as names, prices and vegetarian options.
 
 ## API
 
@@ -10,10 +8,6 @@ vegetarische Optionen.
 
 Returns a list of all meals.
 
-#### GET /allergens
-
-Returns a list of all allergens.
-
 ##### Parameters
 
 | Name    | Type   | Description                                                                                                                               |
@@ -21,6 +15,10 @@ Returns a list of all allergens.
 | `day`   | string | The day of the week. Valid values are `mon`, `tue`, `wed`, `thu`, `fri`, `sat` and `sun`.                                                                    |
 | `week`  | string | The week. Valid values are `current` for the current week and `next` for the next                                                         |
 | `mensa` | string | Location. Valid values are `mh` for the cafeteria in the 'Musikhochschule'. everything else defaults back to 'Mensa Lübeck mit Cafeteria' |
+
+#### GET /allergens
+
+Returns a list of all allergens.
 
 #### GET /refresh
 
@@ -100,3 +98,8 @@ npm install -g gitmoji-cli
 gitmoji -i
 ```
 
+## Used in 
+
+- [Tray Application](https://github.com/Importantus/speiseplan-tray/) (Windows, Linux)
+- [KDE Plasma Widget](https://github.com/lomenzel/mensa) (Linux with KDE Plasma)
+- [Android Widget](https://github.com/hoppjan/LuebeckMensaWidget) (Android)
