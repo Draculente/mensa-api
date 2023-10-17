@@ -22,7 +22,7 @@ Returns a list of all allergens.
 
 #### GET /refresh
 
-Refresh all caches.
+Refreshes all caches.
 
 #### GET /allergens/last-update
 
