@@ -1,5 +1,5 @@
 import express, { Request, Response, NextFunction } from 'express';
-import { refresh } from '../../scraper.js';
+import { refresh } from '../../v1/data.js';
 
 const router = express.Router();
 

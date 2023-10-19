@@ -1,5 +1,5 @@
 import express, { Request, Response, NextFunction } from 'express';
-import { getLastUpdate, getMenu } from '../../scraper.js';
+import { getAllergens, getLastUpdate, getMenu } from '../../v1/data.js';
 import { newLocationEnum, parseDay } from '../../param_parsers.js';
 
 const router = express.Router();

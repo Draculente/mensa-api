@@ -1,17 +1,15 @@
 import fetch from "node-fetch";
 import jsdom from "jsdom";
 import he from "he";
-import { Opt, none, opt } from "ts-opt";
-import Cache from "./cache.js";
+import { Opt, opt } from "ts-opt";
 import { LocationEnum } from "./param_parsers.js";
 
-
-interface Allergen {
+export interface Allergen {
     code: string;
     name: string;
 }
 
-interface Meal {
+export interface Meal {
     name: string;
     price: string;
     allergens: Allergen[];
@@ -22,7 +20,7 @@ enum HasError {
     NO_ERROR = "no_error",
 }
 
-enum Week {
+export enum Week {
     CURRENT_WEEK = "current",
     NEXT_WEEK = "next",
 }
@@ -45,7 +43,7 @@ async function fetchDocument(url: string): Promise<Document> {
 }
 
 // Funktion zum Abrufen des Speiseplans
-async function fetchSpeiseplan(ort: LocationEnum): Promise<Menu> {
+export async function fetchSpeiseplan(ort: LocationEnum): Promise<Menu> {
     const result: Menu = []; // Array zum Speichern der Ergebnisse
 
     const weeks = [0, 1]; // Array mit den Wochen, für die der Speiseplan abgerufen werden soll
@@ -79,7 +77,7 @@ async function fetchSpeiseplan(ort: LocationEnum): Promise<Menu> {
     return result; // Das Ergebnis zurückgeben
 }
 
-async function fetchAllergens(ort: LocationEnum): Promise<Allergen[]> {
+export async function fetchAllergens(ort: LocationEnum): Promise<Allergen[]> {
     const url = `https://studentenwerk.sh/de/mensen-in-luebeck?ort=3&mensa=${ort}&nw=0#mensaplan`
     const document = await fetchDocument(url);
     return parseAllergens(document);
@@ -193,51 +191,4 @@ function extractMealInformation(meals: Opt<Element>, allergens: Allergen[]): Par
         meals: mealsArray.orElse([]),
         hasError: mealsArray.map(() => HasError.NO_ERROR).orElse(HasError.HAS_ERROR)
     }; // Das Array mit den Mahlzeiten zurückgeben
-}
-
-const CACHE_TTL_MENU: number = +(process.env.CACHE_TTL_MENU || 1000 * 60 * 10);
-const CACHE_TTL_ALLERGENS: number = +(process.env.CACHE_TTL_ALLERGENS || 1000 * 60 * 60 * 24);
-
-interface Location {
-    allergens: Cache<Allergen[]>;
-    menu: Cache<Menu>;
-}
-
-interface CacheStore {
-    [LocationEnum.TH]: Location;
-    [LocationEnum.MH]: Location;
-}
-
-let store: CacheStore = {
-    [LocationEnum.TH]: {
-        allergens: new Cache(CACHE_TTL_ALLERGENS, () => fetchAllergens(LocationEnum.TH)),
-        menu: new Cache(CACHE_TTL_MENU, () => fetchSpeiseplan(LocationEnum.TH)),
-    },
-    [LocationEnum.MH]: {
-        allergens: new Cache(CACHE_TTL_ALLERGENS, () => fetchAllergens(LocationEnum.MH)),
-        menu: new Cache(CACHE_TTL_MENU, () => fetchSpeiseplan(LocationEnum.MH)),
-    }
-};
-
-export function getMenu(location: LocationEnum): Promise<Menu> {
-    return store[location].menu.data;
-}
-
-export function getAllergens(location: LocationEnum): Promise<Allergen[]> {
-    return store[location].allergens.data;
-}
-
-export async function refresh() {
-    return Promise.all(
-        Object.values(store).map(location => {
-            return Promise.all([
-                location.allergens.refresh(),
-                location.menu.refresh()
-            ]);
-        })
-    )
-}
-
-export function getLastUpdate(location: LocationEnum, menu: boolean): Date {
-    return menu ? store[location].menu.lastUpdateDate : store[location].allergens.lastUpdateDate;
 }
