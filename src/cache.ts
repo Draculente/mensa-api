@@ -29,7 +29,7 @@ export default class Cache<T> {
                 async () => {
                     console.log("Cache-Miss")
                     try {
-                        resolve(await this.refresh());
+                        resolve(await this.loadData());
                     } catch (error) {
                         reject(error)
                     }
@@ -38,7 +38,7 @@ export default class Cache<T> {
         });
     }
 
-    public async refresh(): Promise<T> {
+    public async loadData(): Promise<T> {
         try {
             const data = await this.fetcher();
             this._data = some(data);
