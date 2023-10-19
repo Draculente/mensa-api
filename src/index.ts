@@ -1,64 +1,85 @@
-import express, { Request, Response, NextFunction } from 'express';
+import express from 'express';
 import cors from 'cors';
 import { errorHandler, notFound } from './middleware.js';
-import { Ort, getMensaData } from './scraper.js';
+import mealsRouterV1 from './routers/v1/meals.js';
+import allergensRouterV1 from './routers/v1/allergens.js';
+import refreshRouterV1 from './routers/v1/refresh.js';
 
 const app = express();
 app.use(cors());
 
+interface APIVersion {
+    path: string;
+    name: string;
+    resources: Resource[];
+}
 
-const PORT = process.env.PORT || 3000;
+interface Resource {
+    path: string;
+    router?: express.Router;
+    name: string;
+}
 
-const weekdays = [
-    ["so", "mo", "di", "mi", "do", "fr", "sa"],
-    ["su", "mo", "tu", "we", "th", "fr", "sa"],
-    ["sun", "mon", "tue", "wed", "thu", "fri", "sat"],
-    ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
-]
+const versions: APIVersion[] = [
+    {
+        path: "",
+        name: "v1",
+        resources: [
+            {
+                path: "/meals",
+                name: "meals",
+                router: mealsRouterV1
+            },
+            {
+                path: "/allergens",
+                name: "allergens",
+                router: allergensRouterV1
+            },
+            {
+                path: "/refresh",
+                name: "refresh",
+                router: refreshRouterV1
+            }
+        ]
+    },
+];
 
-app.get('/', (req: Request, res: Response) => {
-    res.json({
-        meals: '/meals',
-        allergens: '/allergens'
-    })
+
+app.get("/", (_, res) => {
+    res.json(versions.map(version => {
+        return {
+            version: version.name,
+            path: `/${version.path}`
+        }
+    }));
 });
 
-app.get('/meals', async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        let data = null;
-        const params = req.query;
-        data = await getMensaData(params.mensa === "mh" ? Ort.MH : Ort.TH);
-        data = data.speiseplan
+versions.forEach(version => {
+    app.get(`${version.path}`, (_, res) => {
+        res.json(version.resources.map(resource => {
+            return {
+                path: `${version.path}${resource.path}`,
+                name: resource.name
+            }
+        }));
+    });
+})
 
-        if (params.day) {
-            data = data.filter(day => new Date(day.date).getDay() === weekdays.find(weekday => weekday.includes(params.day?.toString().toLowerCase() ?? ""))?.indexOf(params.day?.toString().toLowerCase() ?? ""));
+versions.forEach(version => {
+    version.resources.forEach(resource => {
+        if (resource.router) {
+            console.log(`Registering ${resource.name} at ${version.path}${resource.path}`);
+
+            app.use(`${version.path}${resource.path}`, resource.router);
         }
-        if (params.week) {
-            data = data.filter(day => day.week === params.week?.toString());
-        }
-
-        res.json(data);
-    } catch (error) {
-        next(error);
-    }
-});
-
-app.get('/allergens', async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        let data = null;
-        const params = req.query;
-        data = await getMensaData(params.mensa === "mh" ? Ort.MH : Ort.TH);
-        data = data.allergens
-
-        res.json(data);
-    } catch (error) {
-        next(error);
-    }
+    });
 });
 
 
 app.use(notFound);
 app.use(errorHandler);
+
+const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
