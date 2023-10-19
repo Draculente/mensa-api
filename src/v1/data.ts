@@ -52,8 +52,8 @@ export async function refresh() {
     return Promise.all(
         Object.values(store).map(location => {
             return Promise.all([
-                location.allergens.refresh(),
-                location.menu.refresh()
+                location.allergens.loadData(),
+                location.menu.loadData()
             ]);
         })
     )
