@@ -12,7 +12,14 @@ export interface Allergen {
 export interface Meal {
     name: string;
     price: string;
+    priceByGroup: PriceByGroup;
     allergens: Allergen[];
+}
+
+export interface PriceByGroup {
+    students: number;
+    employees: number;
+    guests: number;
 }
 
 enum HasError {
@@ -131,6 +138,25 @@ function getMealsByDate(document: Document, date: Date): Opt<Element> {
     return opt(document.querySelector(`[data-day="${isoDate}"]:not(.mb_day)`));
 }
 
+// Funktion zum Extrahieren der Preise für die verschiedenen Gruppen
+function getPriceByGroup(price: string): PriceByGroup {
+    const priceByGroup = {
+        students: 0,
+        employees: 0,
+        guests: 0,
+    };
+
+    const priceArray = price.replaceAll("€", "").replaceAll(",", ".").split("/");
+
+    if (priceArray.length === 3) {
+        priceByGroup.students = parseFloat(priceArray[0].trim());
+        priceByGroup.employees = parseFloat(priceArray[1].trim());
+        priceByGroup.guests = parseFloat(priceArray[2].trim());
+    }
+
+    return priceByGroup;
+}
+
 // Funktion zum Extrahieren der Informationen für jede Mahlzeit
 function extractMealInformation(meals: Opt<Element>, allergens: Allergen[]): Partial<Day> {
     if (meals.isNone()) return { open: true, meals: [], hasError: HasError.HAS_ERROR }; // Wenn keine Mahlzeiten gefunden wurden, wird ein leeres Array zurückgegeben
@@ -163,6 +189,7 @@ function extractMealInformation(meals: Opt<Element>, allergens: Allergen[]): Par
                 .orElse("Error getting name"); // Den Namen der Mahlzeit extrahieren und HTML-Tags entfernen
 
             const price = opt(mealInfo.querySelector(".menu_preis")?.textContent).map((price) => price.trim()).orElse("Error getting price"); // Den Preis der Mahlzeit extrahieren
+            const priceByGroup = getPriceByGroup(price);
             const vegan = mealInfo.getAttribute("data-arten")?.includes("vn") ?? false; // Überprüfen, ob die Mahlzeit vegan ist
             const vegetarian = (mealInfo.getAttribute("data-arten")?.includes("ve") ?? false) || vegan; // Überprüfen, ob die Mahlzeit vegetarisch ist
             const location = mealInfo.querySelector(".menu_art")?.textContent ?? "Error getting location"; // Den Standort der Mahlzeit extrahieren
@@ -177,6 +204,7 @@ function extractMealInformation(meals: Opt<Element>, allergens: Allergen[]): Par
                 name,
                 price,
                 vegan,
+                priceByGroup,
                 vegetarian,
                 location,
                 allergens: mealAllergens,
