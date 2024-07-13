@@ -7,7 +7,7 @@ metadata:
     app: speiseplan
     commit: "{{ UNIQUE_TAG }}"
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     matchLabels:
       app: speiseplan
@@ -18,11 +18,11 @@ spec:
         commit: "{{ UNIQUE_TAG }}"
     spec:
       containers:
-      - image: "ghcr.io/draculente/mensa-api:master"
-        name: speiseplan
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 80
-        resources: {}
+        - image: "ghcr.io/draculente/mensa-api:master"
+          name: speiseplan
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+          resources: {}
       imagePullSecrets:
-      - name: "dockerconfigjson-github-com"
+        - name: "dockerconfigjson-github-com"
