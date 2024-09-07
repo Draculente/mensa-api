@@ -12,7 +12,8 @@ Returns a list of all meals.
 
 | Name    | Type   | Description                                                                                                                               |
 | ------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `day`   | string | The day of the week. Valid values are `mon`, `tue`, `wed`, `thu`, `fri`, `sat` and `sun`.                                                                    |
+| `date`  | string | The date in the format `YYYY-MM-DD`.                                                                                                      |
+| `day`   | string | The day of the week. Valid values are `mon`, `tue`, `wed`, `thu`, `fri`, `sat` and `sun`.                                                 |
 | `week`  | string | The week. Valid values are `current` for the current week and `next` for the next                                                         |
 | `mensa` | string | Location. Valid values are `mh` for the cafeteria in the 'Musikhochschule'. everything else defaults back to 'Mensa Lübeck mit Cafeteria' |
 
@@ -48,11 +49,11 @@ curl https://speiseplan.mcloud.digital/meals?day=fr | jq
 
 The app is configured via environment variables. The following variables are available:
 
-| Name              | Description                                                                                                                               |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `PORT`            | The port the app will listen on. Defaults to `3000`.                                                                                      |
-| `CACHE_TTL_MENU`       | The time to live of the menu cache containing the meals in milliseconds. Defaults to `1000 * 60 * 10`.                                                                             |
-| `CACHE_TTL_ALLERGENS` | The time to live of the allergens cache in milliseconds. Defaults to `1000 * 60 * 60 * 24`.                                                                             |
+| Name                  | Description                                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------------ |
+| `PORT`                | The port the app will listen on. Defaults to `3000`.                                                   |
+| `CACHE_TTL_MENU`      | The time to live of the menu cache containing the meals in milliseconds. Defaults to `1000 * 60 * 10`. |
+| `CACHE_TTL_ALLERGENS` | The time to live of the allergens cache in milliseconds. Defaults to `1000 * 60 * 60 * 24`.            |
 
 ## Local Setup
 
