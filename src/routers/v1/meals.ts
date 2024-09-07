@@ -18,15 +18,15 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
         }
 
         if (params.date) {
-            // Check if date is in format dd-mm-yyyy
-            if (!params.date.toString().match(/^\d{2}-\d{2}-\d{4}$/)) {
+            // Check if date is in format yyyy-mm-dd
+            if (!params.date.toString().match(/^\d{4}-\d{2}-\d{2}$/)) {
                 res.status(400).json({
                     "error": "Invalid date format"
                 });
                 return;
             }
-            // Parse as dd-mm-yyyy
-            const date = new Date(params.date.toString().split("-").reverse().join("-"));
+            // Parse as yyyy-mm-dd
+            const date = new Date(params.date.toString());
             // Check if date is valid
             if (isNaN(date.getTime())) {
                 res.status(400).json({
