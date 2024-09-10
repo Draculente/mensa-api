@@ -1,6 +1,7 @@
-use v2::scrape_allergens;
+use v2::{scrape_allergens, scrape_meals};
 
 #[tokio::main]
 async fn main() {
-    dbg!(scrape_allergens(v2::Location::Mensa).await);
+    let allergenes = scrape_allergens().await.unwrap();
+    dbg!(scrape_meals(v2::Location::Mensa, &allergenes).await);
 }
