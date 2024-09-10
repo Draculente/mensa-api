@@ -1,0 +1,15 @@
+[package]
+name = "v2"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+reqwest = { default-features = false, version = "0.12.7", features = [
+    "json",
+    "rustls-tls",
+] }
+anyhow = "1.0.87"
+tokio = { version = "1.40.0", features = ["full"] }
+warp = "0.3.7"
+serde = { version = "1.0.210", features = ["derive"] }
+scraper = "0.20.0"

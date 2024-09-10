@@ -1,0 +1,141 @@
+openapi: "3.0.0"
+info:
+  title: "Meal API"
+  version: "2.0.0"
+paths:
+  /meals:
+    get:
+      summary: "Get a list of meals"
+      parameters:
+        - name: date
+          in: query
+          description: "Filter by dates"
+          required: false
+          schema:
+            type: "array"
+            items:
+              type: "string"
+        - name: location
+          in: query
+          description: "Filter by locations"
+          required: false
+          schema:
+            type: "array"
+            items:
+              type: "string"
+        - name: excludeAllergens
+          in: query
+          description: "List of allergen codes to exclude from the results"
+          required: false
+          schema:
+            type: "array"
+            items:
+              type: "string"
+        - name: vegan
+          in: query
+          description: "Filter if the meals are vegan"
+          required: false
+          schema:
+            type: boolean
+        - name: vegetarian
+          in: query
+          description: "Filter if the meals are vegetarian"
+          required: false
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: "Successful response"
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  type: "object"
+                  properties:
+                    name:
+                      type: "string"
+                    price:
+                      type: "string"
+                    vegan:
+                      type: "boolean"
+                    priceByGroup:
+                      type: "object"
+                      properties:
+                        students:
+                          type: "number"
+                        employees:
+                          type: "number"
+                        guests:
+                          type: "number"
+                    vegetarian:
+                      type: "boolean"
+                    location:
+                      type: object
+                      properties:
+                        name:
+                          type: "string"
+                        code:
+                          type: "string"
+                    allergens:
+                      type: "array"
+                      items:
+                        type: "object"
+                        properties:
+                          code:
+                            type: "string"
+                          name:
+                            type: "string"
+
+  /allergens:
+    get:
+      summary: "Get a list of allergens"
+      parameters:
+        - name: code
+          in: query
+          description: "Filter by allergen codes"
+          required: false
+          schema:
+            type: "array"
+            items:
+              type: "string"
+        - name: name
+          in: query
+          description: "Filter by allergen names"
+          required: false
+          schema:
+            type: "array"
+            items:
+              type: "string"
+      responses:
+        "200":
+          description: "Successful response"
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  type: "object"
+                  properties:
+                    code:
+                      type: "string"
+                    name:
+                      type: "string"
+
+  /locations:
+    get:
+      summary: "Get a list of locations"
+      responses:
+        "200":
+          description: "Successful response"
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  type: "object"
+                  properties:
+                    code:
+                      type: "string"
+                    name:
+                      type: "string"
