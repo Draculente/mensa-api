@@ -1,37 +1,202 @@
 use core::fmt;
 
 use anyhow::anyhow;
+use chrono::DateTime;
+use chrono::Duration;
+use chrono::DurationRound;
+use chrono::NaiveDateTime;
+use chrono::TimeZone;
+use chrono::Utc;
 use futures::future::join_all;
 use htmlentity::entity::decode;
 use htmlentity::entity::ICodedDataTrait;
+use itertools::Itertools;
 use regex::Regex;
 use scraper::Html;
 use scraper::Selector;
+use serde::Deserialize;
+use serde::Serialize;
+use strum::EnumIter;
+use strum::IntoEnumIterator;
+
+// Warp currently does not support vec. So I parse those manually with ',' as separator: https://github.com/seanmonstar/warp/issues/732
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MealsQuery {
+    date: Option<String>,
+    location: Option<String>,
+    exclude_allergenes: Option<String>,
+    vegan: Option<bool>,
+    vegetarian: Option<bool>,
+}
+
+impl MealsQuery {
+    fn accepts(&self, meal: &Meal) -> bool {
+        self.date
+            .as_ref()
+            .map(|d| d.contains(&meal.date))
+            .unwrap_or(true)
+            && self
+                .location
+                .as_ref()
+                .map(|l| l.contains(&meal.location.code))
+                .unwrap_or(true)
+            && self
+                .exclude_allergenes
+                .as_ref()
+                .map(|excluded_allergenes| {
+                    !meal
+                        .allergens
+                        .iter()
+                        .any(|a| excluded_allergenes.contains(&a.code))
+                })
+                .unwrap_or(true)
+            && self
+                .vegan
+                .as_ref()
+                .map(|vegan| &meal.vegan == vegan)
+                .unwrap_or(true)
+            && self
+                .vegetarian
+                .as_ref()
+                .map(|vegetarian| &meal.vegetarian == vegetarian)
+                .unwrap_or(true)
+    }
+}
 
 #[derive(Debug, Clone)]
+pub struct Data {
+    allergenes: Vec<Allergene>,
+    meals: Vec<Meal>,
+    locations: Vec<APILocation>,
+}
+
+impl Data {
+    async fn fetch() -> anyhow::Result<Data> {
+        let locations: Vec<APILocation> = Location::iter().map(|l| l.into()).collect();
+        let allergenes = scrape_allergens().await?;
+        let meals = scrape_meals(&allergenes).await?;
+
+        Ok(Self {
+            locations,
+            allergenes,
+            meals,
+        })
+    }
+
+    pub fn get_meals_filtered(&self, filter: &MealsQuery) -> Vec<&Meal> {
+        self.meals.iter().filter(|m| filter.accepts(m)).collect()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Cache {
+    data: Option<Data>,
+    last_updated: DateTime<Utc>,
+    ttl: Duration,
+}
+
+impl Cache {
+    pub async fn get_data(&self) -> anyhow::Result<&Data> {
+        self.data.as_ref().ok_or(anyhow!(
+            "Failed to get data, because option is empty. This should not have happened!"
+        ))
+    }
+
+    pub fn needs_update(&self) -> bool {
+        let now = chrono::offset::Utc::now();
+        self.last_updated + self.ttl < now
+    }
+
+    pub async fn fetch(&mut self) -> anyhow::Result<()> {
+        self.data = Some(Data::fetch().await?);
+        self.last_updated = chrono::offset::Utc::now();
+        Ok(())
+    }
+
+    pub async fn new(ttl: Duration) -> anyhow::Result<Self> {
+        Ok(Self {
+            data: None,
+            last_updated: DateTime::from_timestamp_nanos(0),
+            ttl,
+        })
+    }
+
+    pub fn get_last_update_as_string(&self) -> String {
+        self.last_updated.to_string()
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct Allergene {
     code: String,
     name: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct APILocation {
     code: String,
     name: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Meal {
     name: String,
     date: String,
-    price: String,
+    price: Prices,
     vegan: bool,
     vegetarian: bool,
     location: APILocation,
     allergens: Vec<Allergene>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize)]
+struct Prices {
+    students: f32,
+    employees: f32,
+    guests: f32,
+}
+
+impl Default for Prices {
+    fn default() -> Self {
+        Self {
+            students: Default::default(),
+            employees: Default::default(),
+            guests: Default::default(),
+        }
+    }
+}
+
+impl TryFrom<String> for Prices {
+    type Error = anyhow::Error;
+
+    fn try_from(value: String) -> anyhow::Result<Self> {
+        let cleaned_values = value.replace("€", "").replace(",", ".");
+
+        let num_values = cleaned_values
+            .split("/")
+            .filter(|s| !s.trim().is_empty())
+            .map(|v| v.trim().parse::<f32>())
+            .collect::<Result<Vec<f32>, _>>()?;
+
+        if num_values.len() < 3 {
+            return Err(anyhow!("Too few prices."));
+        };
+
+        Ok(Prices {
+            students: *num_values
+                .get(0)
+                .expect("Too few item. This should not happen (0)"),
+            employees: *num_values
+                .get(0)
+                .expect("Too few items. This should not happen (1)"),
+            guests: *num_values
+                .get(2)
+                .expect("Too few items. This should not happen (2)"),
+        })
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter)]
 pub enum Location {
     Musikhochschule,
     Cafeteria,
@@ -40,7 +205,7 @@ pub enum Location {
 
 impl Location {
     /// The speiseplan website uses number codes to differentiate between locations.
-    /// This methods the Location translates into these codes.
+    /// This method translates the location into these codes.
     fn to_url_code(&self) -> usize {
         match self {
             Location::Musikhochschule => 9,
@@ -80,14 +245,13 @@ impl fmt::Display for Location {
     }
 }
 
-pub async fn scrape_meals(
-    location: Location,
-    allergenes: &Vec<Allergene>,
-) -> anyhow::Result<Vec<Meal>> {
+pub async fn scrape_meals(allergenes: &Vec<Allergene>) -> anyhow::Result<Vec<Meal>> {
     // 0,1
     let weeks = 0..2;
 
-    let futures = weeks.map(|week| scrape_meals_of_week(location, week, allergenes));
+    let futures = weeks
+        .cartesian_product(vec![Location::Mensa, Location::Musikhochschule])
+        .map(|(week, location)| scrape_meals_of_week(location, week, allergenes));
 
     let vecs_of_meals = join_all(futures)
         .await
@@ -153,14 +317,6 @@ async fn scrape_meals_of_week(
                     decode(name_str.as_bytes()).to_string()
                 })?;
 
-            // TODO: ist inner_html ausreichend?
-            let price = meal_info
-                .select(&price_selector)
-                .next()
-                .ok_or(anyhow!("Failed to select price element"))
-                .map(|e| e.inner_html())
-                .and_then(|html| decode(html.as_bytes()).to_string())?;
-
             let vegan = meal_info
                 .attr("data-arten")
                 .is_some_and(|a| a.contains("vn"));
@@ -198,6 +354,15 @@ async fn scrape_meals_of_week(
                 .collect();
 
             let date = date_str.ok_or(anyhow!("Failed to extract date info"))?;
+
+            let price = meal_info
+                .select(&price_selector)
+                .next()
+                .ok_or(anyhow!("Failed to select price element"))
+                .map(|e| e.inner_html())
+                .and_then(|html| decode(html.as_bytes()).to_string())?
+                .try_into()
+                .unwrap_or_default();
 
             Ok(Meal {
                 name,

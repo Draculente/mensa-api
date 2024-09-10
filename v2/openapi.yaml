@@ -23,7 +23,7 @@ paths:
             type: "array"
             items:
               type: "string"
-        - name: excludeAllergens
+        - name: excludeAllergenes
           in: query
           description: "List of allergen codes to exclude from the results"
           required: false
@@ -49,43 +49,50 @@ paths:
           content:
             application/json:
               schema:
-                type: "array"
-                items:
-                  type: "object"
-                  properties:
-                    name:
-                      type: "string"
-                    price:
-                      type: "string"
-                    vegan:
-                      type: "boolean"
-                    priceByGroup:
+                type: "object"
+                properties:
+                  last_updated:
+                    type: "string"
+                    description: "ISO Date of the last scrape from the website in UTC"
+                  data:
+                    type: array
+                    items:
                       type: "object"
                       properties:
-                        students:
-                          type: "number"
-                        employees:
-                          type: "number"
-                        guests:
-                          type: "number"
-                    vegetarian:
-                      type: "boolean"
-                    location:
-                      type: object
-                      properties:
+                        date:
+                          type: "string"
+                          description: "ISO Date (without time). E.g.: 2025-09-24"
                         name:
                           type: "string"
-                        code:
-                          type: "string"
-                    allergens:
-                      type: "array"
-                      items:
-                        type: "object"
-                        properties:
-                          code:
-                            type: "string"
-                          name:
-                            type: "string"
+                        vegan:
+                          type: "boolean"
+                        price:
+                          type: "object"
+                          properties:
+                            students:
+                              type: "number"
+                            employees:
+                              type: "number"
+                            guests:
+                              type: "number"
+                        vegetarian:
+                          type: "boolean"
+                        location:
+                          type: object
+                          properties:
+                            name:
+                              type: "string"
+                            code:
+                              type: "string"
+                        allergens:
+                          type: "array"
+                          items:
+                            type: "object"
+                            properties:
+                              code:
+                                type: "string"
+                              name:
+                                type: "string"
 
   /allergens:
     get:
