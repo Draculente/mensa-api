@@ -1,22 +1,67 @@
-use std::{sync::Arc, time::Duration};
+use std::{convert::Infallible, sync::Arc};
 
 use serde::Serialize;
-use tokio::{join, sync::RwLock, time::sleep};
+use tokio::sync::RwLock;
 use v2::{APIFilter, Cache, Meal, MealsQuery};
+use warp::http::StatusCode;
 use warp::{
-    reject::Reject,
-    reply::{self, Json},
+    reject::{Reject, Rejection},
+    reply::{self, Json, Reply},
     Filter,
 };
 
 #[derive(Debug)]
-struct TempError;
-impl Reject for TempError {}
+struct APIError(anyhow::Error);
+impl Reject for APIError {}
+
+impl APIError {
+    async fn handle_rejection(err: Rejection) -> std::result::Result<impl Reply, Infallible> {
+        let code;
+        let message: String;
+
+        if err.is_not_found() {
+            code = StatusCode::NOT_FOUND;
+            message = "Not Found".into();
+        } else if let Some(_) = err.find::<warp::filters::body::BodyDeserializeError>() {
+            code = StatusCode::BAD_REQUEST;
+            message = "Invalid Body".into();
+        } else if let Some(e) = err.find::<warp::reject::InvalidQuery>() {
+            code = StatusCode::BAD_REQUEST;
+            message = e.to_string();
+        } else if let Some(e) = err.find::<anyhow::Error>() {
+            eprint!("{e}");
+            code = StatusCode::INTERNAL_SERVER_ERROR;
+            message = "Internal Server Error".into()
+        } else if let Some(_) = err.find::<warp::reject::MethodNotAllowed>() {
+            code = StatusCode::METHOD_NOT_ALLOWED;
+            message = "Method Not Allowed".into();
+        } else {
+            eprintln!("unhandled error: {:?}", err);
+            code = StatusCode::INTERNAL_SERVER_ERROR;
+            message = "Internal Server Error".into();
+        }
+
+        let json = warp::reply::json(&ErrorResponse {
+            message: message.into(),
+        });
+
+        Ok(warp::reply::with_status(json, code))
+    }
+}
+
+fn custom_reject(error: impl Into<anyhow::Error>) -> warp::Rejection {
+    warp::reject::custom(APIError(error.into()))
+}
 
 #[derive(Debug, Serialize)]
 struct MealResponse<'a> {
     last_updated: String,
     data: Vec<&'a Meal>,
+}
+
+#[derive(Debug, Serialize)]
+struct ErrorResponse {
+    message: String,
 }
 
 type State = Arc<RwLock<Cache>>;
@@ -33,40 +78,16 @@ async fn run() -> anyhow::Result<()> {
         Cache::new(chrono::Duration::minutes(10)).await?,
     ));
 
-    // let cache_interval = tokio::spawn({
-    //     let cache = cache.clone();
-    //     async move {
-    //         let cache = cache.clone();
-    //         loop {
-    //             {
-    //                 let mut cache = cache.write().await;
-    //                 if let Err(e) = cache.fetch().await {
-    //                     eprint!("{e}");
-    //                 };
-    //             }
-    //             // TODO: Extract duration into config
-    //             sleep(Duration::from_secs(60)).await;
-    //         }
-    //     }
-    // });
-
     let meals_route = warp::get()
         .and(warp::path!("v2" / "meals"))
         .and(with_state_and_query_filter::<Meal, MealsQuery>(state))
-        // .and(warp::query::<MealsQuery>())
-        // .and(with_state(state))
         .and_then(move |(query, state)| meals_handler(query, state));
 
-    // let (_, b) = join!(
-    //     warp::serve(meals_route).run(([127, 0, 0, 1], 3030)),
-    //     cache_interval
-    // );
+    let routes = meals_route
+        .with(warp::cors().allow_any_origin())
+        .recover(APIError::handle_rejection);
 
-    warp::serve(meals_route).run(([127, 0, 0, 1], 3030)).await;
-
-    // if let Err(e) = b {
-    //     eprint!("{e}");
-    // };
+    warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
 
     Ok(())
 }
@@ -92,10 +113,7 @@ async fn ensure_up_to_date<T>(
 ) -> Result<(impl APIFilter<T>, State), warp::Rejection> {
     if cache.read().await.needs_update() {
         let mut cache = cache.write().await;
-        cache.fetch().await.map_err(|e| {
-            eprint!("{e}");
-            warp::reject::custom(TempError)
-        })?;
+        cache.fetch().await.map_err(custom_reject)?;
     }
     Ok((filter, cache))
 }
@@ -104,17 +122,8 @@ async fn meals_handler(
     query: impl APIFilter<Meal>,
     state: State,
 ) -> Result<impl warp::Reply, warp::Rejection> {
-    // ensure_up_to_date(&query, state.clone())
-    //     .await
-    //     .map_err(|e| {
-    //         eprint!("{e}");
-    //         warp::reject::custom(TempError)
-    //     })?;
     let cache = state.read().await;
-    let data = cache.get_data().await.map_err(|e| {
-        eprint!("{e}");
-        warp::reject::custom(TempError)
-    })?;
+    let data = cache.get_data().await.map_err(custom_reject)?;
     Ok::<Json, warp::Rejection>(reply::json(&MealResponse {
         last_updated: cache.get_last_update_as_string(),
         data: data.get_meals_filtered(&query),
