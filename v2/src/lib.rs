@@ -1,11 +1,6 @@
-use core::fmt;
-
 use anyhow::anyhow;
 use chrono::DateTime;
 use chrono::Duration;
-use chrono::DurationRound;
-use chrono::NaiveDateTime;
-use chrono::TimeZone;
 use chrono::Utc;
 use futures::future::join_all;
 use htmlentity::entity::decode;
@@ -23,23 +18,33 @@ use strum::IntoEnumIterator;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MealsQuery {
     date: Option<String>,
-    location: Option<String>,
+    location: String,
     exclude_allergenes: Option<String>,
     vegan: Option<bool>,
     vegetarian: Option<bool>,
 }
 
-impl MealsQuery {
+pub trait APIFilter<T>: for<'a> Deserialize<'a> + Send {
+    fn accepts(&self, meal: &T) -> bool;
+    fn get_location_query_string(&self) -> &str;
+    fn get_location_query(&self) -> Vec<Location> {
+        Location::iter()
+            .filter(|l| {
+                let api_location: APILocation = (*l).into();
+                self.get_location_query_string()
+                    .contains(&api_location.code)
+            })
+            .collect()
+    }
+}
+
+impl APIFilter<Meal> for MealsQuery {
     fn accepts(&self, meal: &Meal) -> bool {
         self.date
             .as_ref()
             .map(|d| d.contains(&meal.date))
             .unwrap_or(true)
-            && self
-                .location
-                .as_ref()
-                .map(|l| l.contains(&meal.location.code))
-                .unwrap_or(true)
+            && self.location.contains(&meal.location.code)
             && self
                 .exclude_allergenes
                 .as_ref()
@@ -60,6 +65,10 @@ impl MealsQuery {
                 .as_ref()
                 .map(|vegetarian| &meal.vegetarian == vegetarian)
                 .unwrap_or(true)
+    }
+
+    fn get_location_query_string(&self) -> &str {
+        &self.location
     }
 }
 
@@ -83,7 +92,7 @@ impl Data {
         })
     }
 
-    pub fn get_meals_filtered(&self, filter: &MealsQuery) -> Vec<&Meal> {
+    pub fn get_meals_filtered(&self, filter: &impl APIFilter<Meal>) -> Vec<&Meal> {
         self.meals.iter().filter(|m| filter.accepts(m)).collect()
     }
 }
@@ -136,6 +145,7 @@ pub struct Allergene {
 pub struct APILocation {
     code: String,
     name: String,
+    city: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -221,27 +231,19 @@ impl Into<APILocation> for Location {
             Location::Musikhochschule => APILocation {
                 code: "MH".to_string(),
                 name: "Musikhochschule".to_string(),
+                city: "Lübeck".to_string(),
             },
             Location::Cafeteria => APILocation {
                 code: "CA".to_string(),
                 name: "Cafeteria".to_string(),
+                city: "Lübeck".to_string(),
             },
             Location::Mensa => APILocation {
                 code: "ME".to_string(),
                 name: "Mensa".to_string(),
+                city: "Lübeck".to_string(),
             },
         }
-    }
-}
-
-impl fmt::Display for Location {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = match &self {
-            Location::Musikhochschule => "Cafeteria Musikhochschule",
-            Location::Cafeteria => "Cafeteria Hauptcampus",
-            Location::Mensa => "Mensa",
-        };
-        write!(f, "{s}")
     }
 }
 
@@ -250,7 +252,7 @@ pub async fn scrape_meals(allergenes: &Vec<Allergene>) -> anyhow::Result<Vec<Mea
     let weeks = 0..2;
 
     let futures = weeks
-        .cartesian_product(vec![Location::Mensa, Location::Musikhochschule])
+        .cartesian_product(Location::iter().unique_by(|l| l.to_url_code()))
         .map(|(week, location)| scrape_meals_of_week(location, week, allergenes));
 
     let vecs_of_meals = join_all(futures)

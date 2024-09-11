@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use serde::Serialize;
 use tokio::{join, sync::RwLock, time::sleep};
-use v2::{Cache, Meal, MealsQuery};
+use v2::{APIFilter, Cache, Meal, MealsQuery};
 use warp::{
     reject::Reject,
     reply::{self, Json},
@@ -29,7 +29,7 @@ async fn main() {
 }
 
 async fn run() -> anyhow::Result<()> {
-    let cache = Arc::new(RwLock::new(
+    let state = Arc::new(RwLock::new(
         Cache::new(chrono::Duration::minutes(10)).await?,
     ));
 
@@ -52,28 +52,10 @@ async fn run() -> anyhow::Result<()> {
 
     let meals_route = warp::get()
         .and(warp::path!("v2" / "meals"))
-        .and(warp::query::<MealsQuery>())
-        .and_then({
-            let arc_clone = cache.clone();
-            move |query| {
-                let arc_clone = arc_clone.clone();
-                async move {
-                    ensure_up_to_date(arc_clone.clone()).await.map_err(|e| {
-                        eprint!("{e}");
-                        warp::reject::custom(TempError)
-                    })?;
-                    let cache = arc_clone.read().await;
-                    let data = cache.get_data().await.map_err(|e| {
-                        eprint!("{e}");
-                        warp::reject::custom(TempError)
-                    })?;
-                    Ok::<Json, warp::Rejection>(reply::json(&MealResponse {
-                        last_updated: cache.get_last_update_as_string(),
-                        data: data.get_meals_filtered(&query),
-                    }))
-                }
-            }
-        });
+        .and(with_state_and_query_filter::<Meal, MealsQuery>(state))
+        // .and(warp::query::<MealsQuery>())
+        // .and(with_state(state))
+        .and_then(move |(query, state)| meals_handler(query, state));
 
     // let (_, b) = join!(
     //     warp::serve(meals_route).run(([127, 0, 0, 1], 3030)),
@@ -89,12 +71,54 @@ async fn run() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn ensure_up_to_date(cache: State) -> anyhow::Result<()> {
+fn with_state_and_query_filter<A, T: APIFilter<A> + 'static>(
+    state: State,
+) -> impl Filter<Extract = ((impl APIFilter<A>, State),), Error = warp::Rejection> + Clone {
+    warp::any()
+        .and(warp::query::<T>())
+        .and(with_state(state))
+        .and_then(ensure_up_to_date)
+}
+
+fn with_state(
+    state: State,
+) -> impl Filter<Extract = (State,), Error = std::convert::Infallible> + Clone {
+    warp::any().map(move || state.clone())
+}
+
+async fn ensure_up_to_date<T>(
+    filter: impl APIFilter<T>,
+    cache: State,
+) -> Result<(impl APIFilter<T>, State), warp::Rejection> {
     if cache.read().await.needs_update() {
         let mut cache = cache.write().await;
-        cache.fetch().await?;
+        cache.fetch().await.map_err(|e| {
+            eprint!("{e}");
+            warp::reject::custom(TempError)
+        })?;
     }
-    Ok(())
+    Ok((filter, cache))
+}
+
+async fn meals_handler(
+    query: impl APIFilter<Meal>,
+    state: State,
+) -> Result<impl warp::Reply, warp::Rejection> {
+    // ensure_up_to_date(&query, state.clone())
+    //     .await
+    //     .map_err(|e| {
+    //         eprint!("{e}");
+    //         warp::reject::custom(TempError)
+    //     })?;
+    let cache = state.read().await;
+    let data = cache.get_data().await.map_err(|e| {
+        eprint!("{e}");
+        warp::reject::custom(TempError)
+    })?;
+    Ok::<Json, warp::Rejection>(reply::json(&MealResponse {
+        last_updated: cache.get_last_update_as_string(),
+        data: data.get_meals_filtered(&query),
+    }))
 }
 
 /*
