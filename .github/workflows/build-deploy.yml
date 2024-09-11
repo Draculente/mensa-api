@@ -77,6 +77,4 @@ jobs:
       - uses: actions/checkout@v3
       - run: mkdir -p ~/.kube/ && echo "$KUBECONFIG_CONTENT" > ~/.kube/config
       - run: mo deploy/service.yml| kubectl apply -f -
-      - run: mo deploy/ingress.yml| kubectl apply -f -
-      # - run: mo deploy/deployment.yml| kubectl delete -f - || true
       - run: mo deploy/deployment.yml| kubectl apply -f -

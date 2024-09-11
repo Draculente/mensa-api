@@ -1,28 +1,28 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: speiseplan
-  namespace: simple-tools
+  name: speiseplan-old
+  namespace: speiseplan
   labels:
-    app: speiseplan
+    app: speiseplan-old
     commit: "{{ UNIQUE_TAG }}"
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
-      app: speiseplan
+      app: speiseplan-old
   template:
     metadata:
       labels:
-        app: speiseplan
+        app: speiseplan-old
         commit: "{{ UNIQUE_TAG }}"
     spec:
       containers:
         - image: "ghcr.io/draculente/mensa-api:master"
-          name: speiseplan
+          name: speiseplan-old
           imagePullPolicy: Always
           ports:
-            - containerPort: 80
+            - containerPort: 3000
           resources:
             requests:
               cpu: "50m"

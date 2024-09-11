@@ -1,13 +1,13 @@
 kind: Service
 apiVersion: v1
 metadata:
-  name:  speiseplan-service
-  namespace: simple-tools
+  name: speiseplan-service-old
+  namespace: speiseplan
 spec:
   selector:
-    app:  speiseplan
-  type:  ClusterIP
+    app: speiseplan-old
+  type: ClusterIP
   ports:
-  - protocol: TCP
-    port:  80
-    targetPort:  3000
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
