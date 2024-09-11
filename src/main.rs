@@ -4,10 +4,10 @@ use serde::Serialize;
 use tokio::sync::RwLock;
 
 use envconfig::Envconfig;
-use v2::api_filter::{APIFilter, AllergenesQuery, LocationsQuery, MealsQuery};
-use v2::cache::Cache;
-use v2::config::Config;
-use v2::model::{APILocation, Allergene, Data, Meal};
+use mensa_api::api_filter::{APIFilter, AllergenesQuery, LocationsQuery, MealsQuery};
+use mensa_api::cache::Cache;
+use mensa_api::config::Config;
+use mensa_api::model::{APILocation, Allergene, Data, Meal};
 use warp::http::StatusCode;
 use warp::{
     reject::{Reject, Rejection},

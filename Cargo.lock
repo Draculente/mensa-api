@@ -814,6 +814,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 
 [[package]]
+name = "mensa-api"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "envconfig",
+ "futures",
+ "htmlentity",
+ "itertools",
+ "regex",
+ "reqwest",
+ "scraper",
+ "serde",
+ "strum",
+ "tokio",
+ "warp",
+]
+
+[[package]]
 name = "mime"
 version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1810,25 +1829,6 @@ name = "utf-8"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "09cc8ee72d2a9becf2f2febe0205bbed8fc6615b7cb429ad062dc7b7ddd036a9"
-
-[[package]]
-name = "v2"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "envconfig",
- "futures",
- "htmlentity",
- "itertools",
- "regex",
- "reqwest",
- "scraper",
- "serde",
- "strum",
- "tokio",
- "warp",
-]
 
 [[package]]
 name = "version_check"
