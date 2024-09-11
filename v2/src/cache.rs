@@ -29,6 +29,7 @@ impl Cache {
     }
 
     pub fn new(ttl: Duration) -> anyhow::Result<Self> {
+        println!("Cache initialized with ttl of {ttl}");
         Ok(Self {
             data: None,
             last_updated: DateTime::from_timestamp_nanos(0),

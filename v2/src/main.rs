@@ -109,6 +109,7 @@ async fn run() -> anyhow::Result<()> {
         .and(warp::get())
         .recover(APIError::handle_rejection);
 
+    println!("Server starting on port {}", config.port);
     warp::serve(routes).run(([127, 0, 0, 1], config.port)).await;
 
     Ok(())
