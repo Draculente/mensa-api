@@ -2,7 +2,10 @@ use std::{convert::Infallible, sync::Arc};
 
 use serde::Serialize;
 use tokio::sync::RwLock;
-use v2::{APIFilter, Cache, Meal, MealsQuery};
+use v2::{
+    APIFilter, APILocation, Allergene, AllergenesQuery, Cache, Data, LocationsQuery, Meal,
+    MealsQuery,
+};
 use warp::http::StatusCode;
 use warp::{
     reject::{Reject, Rejection},
@@ -54,9 +57,9 @@ fn custom_reject(error: impl Into<anyhow::Error>) -> warp::Rejection {
 }
 
 #[derive(Debug, Serialize)]
-struct MealResponse<'a> {
+struct DefaultResponse<'a, T> {
     last_updated: String,
-    data: Vec<&'a Meal>,
+    data: Vec<&'a T>,
 }
 
 #[derive(Debug, Serialize)]
@@ -78,13 +81,29 @@ async fn run() -> anyhow::Result<()> {
         Cache::new(chrono::Duration::minutes(10)).await?,
     ));
 
-    let meals_route = warp::get()
-        .and(warp::path!("v2" / "meals"))
-        .and(with_state_and_query_filter::<Meal, MealsQuery>(state))
-        .and_then(move |(query, state)| meals_handler(query, state));
+    let meals_route = warp::path!("v2" / "meals")
+        .and(with_state_and_query_filter::<Meal, MealsQuery>(
+            state.clone(),
+        ))
+        .and_then(move |(query, state)| default_handler(query, state, |d| d.get_meals()));
+
+    let allergenes_route = warp::path!("v2" / "allergenes")
+        .and(with_state_and_query_filter::<Allergene, AllergenesQuery>(
+            state.clone(),
+        ))
+        .and_then(move |(query, state)| default_handler(query, state, |d| d.get_allergenes()));
+
+    let locations_route = warp::path!("v2" / "locations")
+        .and(with_state_and_query_filter::<APILocation, LocationsQuery>(
+            state.clone(),
+        ))
+        .and_then(move |(query, state)| default_handler(query, state, |d| d.get_locations()));
 
     let routes = meals_route
+        .or(allergenes_route)
+        .or(locations_route)
         .with(warp::cors().allow_any_origin())
+        .and(warp::get())
         .recover(APIError::handle_rejection);
 
     warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
@@ -118,15 +137,19 @@ async fn ensure_up_to_date<T>(
     Ok((filter, cache))
 }
 
-async fn meals_handler(
-    query: impl APIFilter<Meal>,
+async fn default_handler<T: Serialize, F>(
+    query: impl APIFilter<T>,
     state: State,
-) -> Result<impl warp::Reply, warp::Rejection> {
+    data_fn: F,
+) -> Result<impl warp::Reply, warp::Rejection>
+where
+    F: Fn(&Data) -> &Vec<T>,
+{
     let cache = state.read().await;
     let data = cache.get_data().await.map_err(custom_reject)?;
-    Ok::<Json, warp::Rejection>(reply::json(&MealResponse {
+    Ok::<Json, warp::Rejection>(reply::json(&DefaultResponse {
         last_updated: cache.get_last_update_as_string(),
-        data: data.get_meals_filtered(&query),
+        data: query.filter(data_fn(data)),
     }))
 }
 

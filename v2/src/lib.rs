@@ -14,18 +14,8 @@ use serde::Serialize;
 use strum::EnumIter;
 use strum::IntoEnumIterator;
 
-// Warp currently does not support vec. So I parse those manually with ',' as separator: https://github.com/seanmonstar/warp/issues/732
-#[derive(Debug, Serialize, Deserialize)]
-pub struct MealsQuery {
-    date: Option<String>,
-    location: String,
-    exclude_allergenes: Option<String>,
-    vegan: Option<bool>,
-    vegetarian: Option<bool>,
-}
-
 pub trait APIFilter<T>: for<'a> Deserialize<'a> + Send {
-    fn accepts(&self, meal: &T) -> bool;
+    fn accepts(&self, to_filter: &T) -> bool;
     fn get_location_query_string(&self) -> &str;
     fn get_location_query(&self) -> Vec<Location> {
         Location::iter()
@@ -36,6 +26,18 @@ pub trait APIFilter<T>: for<'a> Deserialize<'a> + Send {
             })
             .collect()
     }
+    fn filter<'a>(&self, to_be_filtered: &'a Vec<T>) -> Vec<&'a T> {
+        to_be_filtered.iter().filter(|t| self.accepts(t)).collect()
+    }
+}
+// Warp currently does not support vec. So I parse those manually with ',' as separator: https://github.com/seanmonstar/warp/issues/732
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MealsQuery {
+    date: Option<String>,
+    location: String,
+    exclude_allergenes: Option<String>,
+    vegan: Option<bool>,
+    vegetarian: Option<bool>,
 }
 
 impl APIFilter<Meal> for MealsQuery {
@@ -72,6 +74,61 @@ impl APIFilter<Meal> for MealsQuery {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AllergenesQuery {
+    code: Option<String>,
+    name: Option<String>,
+    location: String,
+}
+
+impl APIFilter<Allergene> for AllergenesQuery {
+    fn accepts(&self, allergene: &Allergene) -> bool {
+        self.code
+            .as_ref()
+            .map(|c| c.contains(&allergene.code))
+            .unwrap_or(true)
+            && self
+                .name
+                .as_ref()
+                .map(|n| n.contains(&allergene.code))
+                .unwrap_or(true)
+    }
+
+    fn get_location_query_string(&self) -> &str {
+        &self.location
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct LocationsQuery {
+    code: Option<String>,
+    name: Option<String>,
+    city: Option<String>,
+}
+
+impl APIFilter<APILocation> for LocationsQuery {
+    fn accepts(&self, location: &APILocation) -> bool {
+        self.code
+            .as_ref()
+            .map(|c| c.contains(&location.code))
+            .unwrap_or(true)
+            && self
+                .name
+                .as_ref()
+                .map(|n| n.contains(&location.name))
+                .unwrap_or(true)
+            && self
+                .city
+                .as_ref()
+                .map(|c| c.contains(&location.city))
+                .unwrap_or(true)
+    }
+
+    fn get_location_query_string(&self) -> &str {
+        ""
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Data {
     allergenes: Vec<Allergene>,
@@ -92,8 +149,16 @@ impl Data {
         })
     }
 
-    pub fn get_meals_filtered(&self, filter: &impl APIFilter<Meal>) -> Vec<&Meal> {
-        self.meals.iter().filter(|m| filter.accepts(m)).collect()
+    pub fn get_meals(&self) -> &Vec<Meal> {
+        &self.meals
+    }
+
+    pub fn get_allergenes(&self) -> &Vec<Allergene> {
+        &self.allergenes
+    }
+
+    pub fn get_locations(&self) -> &Vec<APILocation> {
+        &self.locations
     }
 }
 
