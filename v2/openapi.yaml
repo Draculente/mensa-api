@@ -116,20 +116,33 @@ paths:
             type: "array"
             items:
               type: "string"
+        - name: location
+          in: query
+          description: "Filter by locations"
+          required: true
+          schema:
+            type: "array"
+            items:
+              type: "string"
       responses:
         "200":
           description: "Successful response"
           content:
             application/json:
               schema:
-                type: "array"
-                items:
-                  type: "object"
-                  properties:
-                    code:
-                      type: "string"
-                    name:
-                      type: "string"
+                type: "object"
+                properties:
+                  last_updated:
+                    type: "string"
+                  data:
+                    type: "array"
+                    items:
+                      type: "object"
+                      properties:
+                        code:
+                          type: "string"
+                        name:
+                          type: "string"
 
   /locations:
     get:
@@ -151,19 +164,32 @@ paths:
             type: "array"
             items:
               type: "string"
+        - name: name
+          in: query
+          description: "Filter by location names"
+          required: false
+          schema:
+            type: "array"
+            items:
+              type: "string"
       responses:
         "200":
           description: "Successful response"
           content:
             application/json:
               schema:
-                type: "array"
-                items:
-                  type: "object"
-                  properties:
-                    code:
-                      type: "string"
-                    name:
-                      type: "string"
-                    city:
-                      type: "string"
+                type: "object"
+                properties:
+                  last_updated:
+                    type: "string"
+                  data:
+                    type: "array"
+                    items:
+                      type: "object"
+                      properties:
+                        code:
+                          type: "string"
+                        name:
+                          type: "string"
+                        city:
+                          type: "string"
