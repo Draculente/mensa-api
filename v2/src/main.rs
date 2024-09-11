@@ -2,10 +2,10 @@ use std::{convert::Infallible, sync::Arc};
 
 use serde::Serialize;
 use tokio::sync::RwLock;
-use v2::{
-    APIFilter, APILocation, Allergene, AllergenesQuery, Cache, Data, LocationsQuery, Meal,
-    MealsQuery,
-};
+
+use v2::api_filter::{APIFilter, AllergenesQuery, LocationsQuery, MealsQuery};
+use v2::cache::Cache;
+use v2::model::{APILocation, Allergene, Data, Meal};
 use warp::http::StatusCode;
 use warp::{
     reject::{Reject, Rejection},
@@ -77,9 +77,7 @@ async fn main() {
 }
 
 async fn run() -> anyhow::Result<()> {
-    let state = Arc::new(RwLock::new(
-        Cache::new(chrono::Duration::minutes(10)).await?,
-    ));
+    let state = Arc::new(RwLock::new(Cache::new(chrono::Duration::minutes(10))?));
 
     let meals_route = warp::path!("v2" / "meals")
         .and(with_state_and_query_filter::<Meal, MealsQuery>(
@@ -152,26 +150,3 @@ where
         data: query.filter(data_fn(data)),
     }))
 }
-
-/*
-https://stackoverflow.com/questions/66111599/how-can-i-achieve-shared-application-state-with-warp-async-routes
-https://github.com/seanmonstar/warp/issues/732
-#[derive(serde::Deserialize)]
-pub struct Params {
-    pub date: chrono::NaiveDate,
-    pub ids: String,
-}
-
-pub async fn handler(params: Params) -> Result<impl warp::Reply, warp::Rejection> {
-    let ids = parse_ids(&params.ids);
-    // code
-}
-
-fn parse_ids(s: &str) -> Vec<i32> {
-    s.split(",").map(|id| id.parse::<i32>().unwrap()).collect()
-}
-
-let get_posts = warp::get()
-    .and(warp::path("posts"))
-    .and(warp::query::<Params>())
-    .and_then(handler); */
