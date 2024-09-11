@@ -3,8 +3,10 @@ use std::{convert::Infallible, sync::Arc};
 use serde::Serialize;
 use tokio::sync::RwLock;
 
+use envconfig::Envconfig;
 use v2::api_filter::{APIFilter, AllergenesQuery, LocationsQuery, MealsQuery};
 use v2::cache::Cache;
+use v2::config::Config;
 use v2::model::{APILocation, Allergene, Data, Meal};
 use warp::http::StatusCode;
 use warp::{
@@ -77,7 +79,10 @@ async fn main() {
 }
 
 async fn run() -> anyhow::Result<()> {
-    let state = Arc::new(RwLock::new(Cache::new(chrono::Duration::minutes(10))?));
+    let config = Config::init_from_env()?;
+    let state = Arc::new(RwLock::new(Cache::new(chrono::Duration::seconds(
+        config.ttl as i64,
+    ))?));
 
     let meals_route = warp::path!("v2" / "meals")
         .and(with_state_and_query_filter::<Meal, MealsQuery>(
@@ -104,7 +109,7 @@ async fn run() -> anyhow::Result<()> {
         .and(warp::get())
         .recover(APIError::handle_rejection);
 
-    warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
+    warp::serve(routes).run(([127, 0, 0, 1], config.port)).await;
 
     Ok(())
 }
