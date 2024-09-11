@@ -18,7 +18,7 @@ paths:
         - name: location
           in: query
           description: "Filter by locations"
-          required: false
+          required: true
           schema:
             type: "array"
             items:
@@ -84,6 +84,8 @@ paths:
                               type: "string"
                             code:
                               type: "string"
+                            city:
+                              type: "string"
                         allergens:
                           type: "array"
                           items:
@@ -132,6 +134,23 @@ paths:
   /locations:
     get:
       summary: "Get a list of locations"
+      parameters:
+        - name: code
+          in: query
+          description: "Filter by location codes"
+          required: false
+          schema:
+            type: "array"
+            items:
+              type: "string"
+        - name: city
+          in: query
+          description: "Filter by city"
+          required: false
+          schema:
+            type: "array"
+            items:
+              type: "string"
       responses:
         "200":
           description: "Successful response"
@@ -145,4 +164,6 @@ paths:
                     code:
                       type: "string"
                     name:
+                      type: "string"
+                    city:
                       type: "string"
