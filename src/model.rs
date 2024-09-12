@@ -132,17 +132,17 @@ impl Into<APILocation> for Location {
     fn into(self) -> APILocation {
         match self {
             Location::Musikhochschule => APILocation {
-                code: "MH".to_string(),
+                code: "HL_MH".to_string(),
                 name: "Musikhochschule".to_string(),
                 city: "Lübeck".to_string(),
             },
             Location::Cafeteria => APILocation {
-                code: "CA".to_string(),
+                code: "HL_CA".to_string(),
                 name: "Cafeteria".to_string(),
                 city: "Lübeck".to_string(),
             },
             Location::Mensa => APILocation {
-                code: "ME".to_string(),
+                code: "HL_ME".to_string(),
                 name: "Mensa".to_string(),
                 city: "Lübeck".to_string(),
             },
