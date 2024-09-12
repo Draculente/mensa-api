@@ -12,7 +12,7 @@ The API allows many query parameters to have multiple values (like arrays). Just
 #### Example
 
 ```bash
-curl https://speiseplan.mcloud.digital/v2/meals?location=ME,MH | jq
+curl https://speiseplan.mcloud.digital/v2/meals?location=HL_ME,HL_MH | jq
 ```
 
 ## Configuration
