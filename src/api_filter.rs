@@ -71,15 +71,15 @@ pub struct AllergensQuery {
 }
 
 impl APIFilter<Allergen> for AllergensQuery {
-    fn accepts(&self, allergene: &Allergen) -> bool {
+    fn accepts(&self, allergen: &Allergen) -> bool {
         self.code
             .as_ref()
-            .map(|c| c.contains(&allergene.code))
+            .map(|c| c.contains(&allergen.code))
             .unwrap_or(true)
             && self
                 .name
                 .as_ref()
-                .map(|n| n.contains(&allergene.code))
+                .map(|n| n.contains(&allergen.code))
                 .unwrap_or(true)
     }
 

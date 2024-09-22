@@ -23,7 +23,7 @@ paths:
             type: "array"
             items:
               type: "string"
-        - name: excludeAllergenes
+        - name: excludeAllergens
           in: query
           description: "List of allergen codes to exclude from the results"
           required: false

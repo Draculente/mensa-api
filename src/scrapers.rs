@@ -10,13 +10,13 @@ use crate::model::{Allergen, Location, Meal};
 use futures::future::join_all;
 use strum::IntoEnumIterator;
 
-pub async fn scrape_meals(allergenes: &Vec<Allergen>) -> anyhow::Result<Vec<Meal>> {
+pub async fn scrape_meals(allergens: &Vec<Allergen>) -> anyhow::Result<Vec<Meal>> {
     // 0,1
     let weeks = 0..2;
 
     let futures = weeks
         .cartesian_product(Location::iter().unique_by(|l| l.to_url_code()))
-        .map(|(week, location)| scrape_meals_of_week(location, week, allergenes));
+        .map(|(week, location)| scrape_meals_of_week(location, week, allergens));
 
     let vecs_of_meals = join_all(futures)
         .await
@@ -28,7 +28,7 @@ pub async fn scrape_meals(allergenes: &Vec<Allergen>) -> anyhow::Result<Vec<Meal
 async fn scrape_meals_of_week(
     location: Location,
     week: usize,
-    allergenes: &Vec<Allergen>,
+    allergens: &Vec<Allergen>,
 ) -> anyhow::Result<Vec<Meal>> {
     let url = format!(
         "https://studentenwerk.sh/de/mensen-in-luebeck?ort=3&mensa={}&nw={}#mensaplan",
@@ -106,14 +106,14 @@ async fn scrape_meals_of_week(
                     .ok_or(anyhow!("Failed to select menu location"))?
             };
 
-            let raw_allergenes = meal_info
+            let raw_allergens = meal_info
                 .attr("data-allergene")
-                .ok_or(anyhow!("Failed to get allergene attr"))?;
+                .ok_or(anyhow!("Failed to get allergen attr"))?;
 
-            // TODO: Do not clone, but use a reference into the allergene vec.
-            let meal_allergenes: Vec<Allergen> = allergenes
+            // TODO: Do not clone, but use a reference into the allergen vec.
+            let meal_allergens: Vec<Allergen> = allergens
                 .iter()
-                .filter(|allergene| raw_allergenes.contains(&allergene.code))
+                .filter(|allergen| raw_allergens.contains(&allergen.code))
                 .map(|a| a.clone())
                 .collect();
 
@@ -134,7 +134,7 @@ async fn scrape_meals_of_week(
                 vegan,
                 vegetarian,
                 location: meal_location.into(),
-                allergens: meal_allergenes,
+                allergens: meal_allergens,
                 date: date.to_string(),
             })
         })
@@ -152,9 +152,9 @@ pub async fn scrape_allergens() -> anyhow::Result<Vec<Allergen>> {
     let parent_element = document
         .select(&parent_element_selector)
         .next()
-        .ok_or(anyhow!("Failed to get the allergene parent element"))?;
+        .ok_or(anyhow!("Failed to get the allergen parent element"))?;
 
-    let allergenes: Vec<Allergen> = parent_element
+    let allergens: Vec<Allergen> = parent_element
         .child_elements()
         .map(|e| -> Option<Allergen> {
             let code = e.attr("data-wert")?.to_string();
@@ -164,5 +164,5 @@ pub async fn scrape_allergens() -> anyhow::Result<Vec<Allergen>> {
         .filter_map(|a| a)
         .collect();
 
-    Ok(allergenes)
+    Ok(allergens)
 }
