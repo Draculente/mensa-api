@@ -4,10 +4,10 @@ use serde::Serialize;
 use tokio::sync::RwLock;
 
 use envconfig::Envconfig;
-use mensa_api::api_filter::{APIFilter, AllergenesQuery, LocationsQuery, MealsQuery};
+use mensa_api::api_filter::{APIFilter, AllergensQuery, LocationsQuery, MealsQuery};
 use mensa_api::cache::Cache;
 use mensa_api::config::Config;
-use mensa_api::model::{APILocation, Allergene, Data, Meal};
+use mensa_api::model::{APILocation, Allergen, Data, Meal};
 use warp::http::StatusCode;
 use warp::{
     reject::{Reject, Rejection},
@@ -90,11 +90,12 @@ async fn run() -> anyhow::Result<()> {
         ))
         .and_then(move |(query, state)| default_handler(query, state, |d| d.get_meals()));
 
-    let allergenes_route = warp::path!("v2" / "allergenes")
-        .and(with_state_and_query_filter::<Allergene, AllergenesQuery>(
+    let allergens_route = warp::path!("v2" / "allergenes")
+        .or(warp::path!("v2" / "allergens"))
+        .and(with_state_and_query_filter::<Allergen, AllergensQuery>(
             state.clone(),
         ))
-        .and_then(move |(query, state)| default_handler(query, state, |d| d.get_allergenes()));
+        .and_then(move |_, (query, state)| default_handler(query, state, |d| d.get_allergens()));
 
     let locations_route = warp::path!("v2" / "locations")
         .and(with_state_and_query_filter::<APILocation, LocationsQuery>(
@@ -103,7 +104,7 @@ async fn run() -> anyhow::Result<()> {
         .and_then(move |(query, state)| default_handler(query, state, |d| d.get_locations()));
 
     let routes = meals_route
-        .or(allergenes_route)
+        .or(allergens_route)
         .or(locations_route)
         .with(warp::cors().allow_any_origin())
         .and(warp::get())

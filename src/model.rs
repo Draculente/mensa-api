@@ -7,7 +7,7 @@ use strum::IntoEnumIterator;
 
 #[derive(Debug, Clone)]
 pub struct Data {
-    allergenes: Vec<Allergene>,
+    allergens: Vec<Allergen>,
     meals: Vec<Meal>,
     locations: Vec<APILocation>,
 }
@@ -15,12 +15,12 @@ pub struct Data {
 impl Data {
     pub(crate) async fn fetch() -> anyhow::Result<Data> {
         let locations: Vec<APILocation> = Location::iter().map(|l| l.into()).collect();
-        let allergenes = scrape_allergens().await?;
-        let meals = scrape_meals(&allergenes).await?;
+        let allergens = scrape_allergens().await?;
+        let meals = scrape_meals(&allergens).await?;
 
         Ok(Self {
             locations,
-            allergenes,
+            allergens,
             meals,
         })
     }
@@ -29,8 +29,8 @@ impl Data {
         &self.meals
     }
 
-    pub fn get_allergenes(&self) -> &Vec<Allergene> {
-        &self.allergenes
+    pub fn get_allergens(&self) -> &Vec<Allergen> {
+        &self.allergens
     }
 
     pub fn get_locations(&self) -> &Vec<APILocation> {
@@ -39,7 +39,7 @@ impl Data {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct Allergene {
+pub struct Allergen {
     pub(crate) code: String,
     pub(crate) name: String,
 }
@@ -59,7 +59,7 @@ pub struct Meal {
     pub(crate) vegan: bool,
     pub(crate) vegetarian: bool,
     pub(crate) location: APILocation,
-    pub(crate) allergens: Vec<Allergene>,
+    pub(crate) allergens: Vec<Allergen>,
 }
 
 #[derive(Debug, Clone, Serialize)]

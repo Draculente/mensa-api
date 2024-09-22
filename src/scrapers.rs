@@ -6,11 +6,11 @@ use regex::Regex;
 use scraper::Html;
 use scraper::Selector;
 
-use crate::model::{Allergene, Location, Meal};
+use crate::model::{Allergen, Location, Meal};
 use futures::future::join_all;
 use strum::IntoEnumIterator;
 
-pub async fn scrape_meals(allergenes: &Vec<Allergene>) -> anyhow::Result<Vec<Meal>> {
+pub async fn scrape_meals(allergenes: &Vec<Allergen>) -> anyhow::Result<Vec<Meal>> {
     // 0,1
     let weeks = 0..2;
 
@@ -28,7 +28,7 @@ pub async fn scrape_meals(allergenes: &Vec<Allergene>) -> anyhow::Result<Vec<Mea
 async fn scrape_meals_of_week(
     location: Location,
     week: usize,
-    allergenes: &Vec<Allergene>,
+    allergenes: &Vec<Allergen>,
 ) -> anyhow::Result<Vec<Meal>> {
     let url = format!(
         "https://studentenwerk.sh/de/mensen-in-luebeck?ort=3&mensa={}&nw={}#mensaplan",
@@ -111,7 +111,7 @@ async fn scrape_meals_of_week(
                 .ok_or(anyhow!("Failed to get allergene attr"))?;
 
             // TODO: Do not clone, but use a reference into the allergene vec.
-            let meal_allergenes: Vec<Allergene> = allergenes
+            let meal_allergenes: Vec<Allergen> = allergenes
                 .iter()
                 .filter(|allergene| raw_allergenes.contains(&allergene.code))
                 .map(|a| a.clone())
@@ -141,7 +141,7 @@ async fn scrape_meals_of_week(
         .collect()
 }
 
-pub async fn scrape_allergens() -> anyhow::Result<Vec<Allergene>> {
+pub async fn scrape_allergens() -> anyhow::Result<Vec<Allergen>> {
     let url = "https://studentenwerk.sh/de/mensen-in-luebeck?ort=3&mensa=8&nw=0#mensaplan";
 
     let html = reqwest::get(url).await?.text().await?;
@@ -154,12 +154,12 @@ pub async fn scrape_allergens() -> anyhow::Result<Vec<Allergene>> {
         .next()
         .ok_or(anyhow!("Failed to get the allergene parent element"))?;
 
-    let allergenes: Vec<Allergene> = parent_element
+    let allergenes: Vec<Allergen> = parent_element
         .child_elements()
-        .map(|e| -> Option<Allergene> {
+        .map(|e| -> Option<Allergen> {
             let code = e.attr("data-wert")?.to_string();
             let name = e.child_elements().skip(1).next()?.inner_html();
-            Some(Allergene { code, name })
+            Some(Allergen { code, name })
         })
         .filter_map(|a| a)
         .collect();

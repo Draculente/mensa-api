@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::model::{APILocation, Allergene, Location, Meal};
+use crate::model::{APILocation, Allergen, Location, Meal};
 use strum::IntoEnumIterator;
 
 pub trait APIFilter<T>: for<'a> Deserialize<'a> + Send {
@@ -24,7 +24,7 @@ pub trait APIFilter<T>: for<'a> Deserialize<'a> + Send {
 pub struct MealsQuery {
     date: Option<String>,
     location: String,
-    exclude_allergenes: Option<String>,
+    exclude_allergens: Option<String>,
     vegan: Option<bool>,
     vegetarian: Option<bool>,
 }
@@ -37,13 +37,13 @@ impl APIFilter<Meal> for MealsQuery {
             .unwrap_or(true)
             && self.location.contains(&meal.location.code)
             && self
-                .exclude_allergenes
+                .exclude_allergens
                 .as_ref()
-                .map(|excluded_allergenes| {
+                .map(|excluded_allergens| {
                     !meal
                         .allergens
                         .iter()
-                        .any(|a| excluded_allergenes.contains(&a.code))
+                        .any(|a| excluded_allergens.contains(&a.code))
                 })
                 .unwrap_or(true)
             && self
@@ -64,14 +64,14 @@ impl APIFilter<Meal> for MealsQuery {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct AllergenesQuery {
+pub struct AllergensQuery {
     code: Option<String>,
     name: Option<String>,
     location: String,
 }
 
-impl APIFilter<Allergene> for AllergenesQuery {
-    fn accepts(&self, allergene: &Allergene) -> bool {
+impl APIFilter<Allergen> for AllergensQuery {
+    fn accepts(&self, allergene: &Allergen) -> bool {
         self.code
             .as_ref()
             .map(|c| c.contains(&allergene.code))
