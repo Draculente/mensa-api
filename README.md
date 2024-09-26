@@ -66,3 +66,6 @@ gitmoji -i
 - [Tray Application](https://github.com/Importantus/speiseplan-tray/) (Windows, Linux)
 - [KDE Plasma Widget](https://github.com/lomenzel/mensa) (Linux with KDE Plasma)
 - [Android Widget](https://github.com/hoppjan/LuebeckMensaWidget) (Android)
+- [MS Teams Bot](https://github.com/budel/Mensa-Bot) (Microsoft Teams)
+
+If you use the API in your project feel free to add it here with a PR or just open an issue.
