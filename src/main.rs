@@ -84,6 +84,10 @@ async fn run() -> anyhow::Result<()> {
         config.ttl as i64,
     ))?));
 
+    let info_route = warp::path!("v2")
+        .or(warp::path::end())
+        .map(|_| "Mensa-API v2\nMade with 💙 in Lübeck\nhttps://github.com/Draculente/mensa-api/");
+
     let meals_route = warp::path!("v2" / "meals")
         .and(with_state_and_query_filter::<Meal, MealsQuery>(
             state.clone(),
@@ -106,6 +110,7 @@ async fn run() -> anyhow::Result<()> {
     let routes = meals_route
         .or(allergens_route)
         .or(locations_route)
+        .or(info_route)
         .with(warp::cors().allow_any_origin())
         .and(warp::get())
         .recover(APIError::handle_rejection);
