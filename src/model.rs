@@ -84,27 +84,19 @@ impl TryFrom<String> for Prices {
 
     fn try_from(value: String) -> anyhow::Result<Self> {
         let cleaned_values = value.replace("€", "").replace(",", ".");
-
-        let num_values = cleaned_values
+        let num_values: Vec<f32> = cleaned_values
             .split("/")
-            .filter(|s| !s.trim().is_empty())
-            .map(|v| v.trim().parse::<f32>())
-            .collect::<Result<Vec<f32>, _>>()?;
+            .filter_map(|s| s.trim().parse().ok())
+            .collect();
 
-        if num_values.len() < 3 {
-            return Err(anyhow!("Too few prices."));
-        };
+        if num_values.len() != 3 {
+            return Err(anyhow!("Invalid number of prices."));
+        }
 
         Ok(Prices {
-            students: *num_values
-                .get(0)
-                .expect("Too few item. This should not happen (0)"),
-            employees: *num_values
-                .get(1)
-                .expect("Too few items. This should not happen (1)"),
-            guests: *num_values
-                .get(2)
-                .expect("Too few items. This should not happen (2)"),
+            students: num_values[0],
+            employees: num_values[1],
+            guests: num_values[2],
         })
     }
 }
