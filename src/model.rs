@@ -100,7 +100,7 @@ impl TryFrom<String> for Prices {
                 .get(0)
                 .expect("Too few item. This should not happen (0)"),
             employees: *num_values
-                .get(0)
+                .get(1)
                 .expect("Too few items. This should not happen (1)"),
             guests: *num_values
                 .get(2)
