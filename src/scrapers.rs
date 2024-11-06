@@ -123,7 +123,7 @@ async fn scrape_meals_of_week(
                 .select(&price_selector)
                 .next()
                 .ok_or(anyhow!("Failed to select price element"))
-                .map(|e| e.inner_html())
+                .map(|e| e.text().map(|n| n).join("/"))
                 .and_then(|html| decode(html.as_bytes()).to_string())?
                 .try_into()
                 .unwrap_or_default();
