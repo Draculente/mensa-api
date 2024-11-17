@@ -1,9 +1,35 @@
+use std::marker::PhantomData;
+
 use serde::Serialize;
 
 use crate::scrapers::{scrape_allergens, scrape_meals};
 use anyhow::anyhow;
 use strum::EnumIter;
 use strum::IntoEnumIterator;
+
+struct CacheTest<'a, T: Source<'a>> {
+    data: Vec<T>,
+    _phantom: PhantomData<&'a T>,
+}
+
+impl CacheTest<'_, Data> {
+    fn new() -> Self {
+        Self {
+            data: vec![Data::new()],
+            _phantom: PhantomData,
+        }
+    }
+}
+
+trait Source<'a>: Sized {
+    fn new() -> Self;
+    async fn fetch(&mut self) -> anyhow::Result<()>;
+    fn get_meals(&'a self) -> &'a Vec<Meal>;
+    fn get_allergens(&'a self) -> &'a Vec<Allergen>;
+    /// This MUST work without prior fetch!!!
+    // TODO: Encode this into type system!!!
+    fn get_locations(&'a self) -> &'a Vec<APILocation>;
+}
 
 #[derive(Debug, Clone)]
 pub struct Data {
@@ -12,28 +38,37 @@ pub struct Data {
     locations: Vec<APILocation>,
 }
 
-impl Data {
-    pub(crate) async fn fetch() -> anyhow::Result<Data> {
+impl<'a> Source<'a> for Data {
+    fn new() -> Self {
+        Self {
+            locations: Location::iter().map(|l| l.into()).collect(),
+            allergens: vec![],
+            meals: vec![],
+        }
+    }
+
+    async fn fetch(&mut self) -> anyhow::Result<()> {
         let locations: Vec<APILocation> = Location::iter().map(|l| l.into()).collect();
         let allergens = scrape_allergens().await?;
         let meals = scrape_meals(&allergens).await?;
 
-        Ok(Self {
-            locations,
-            allergens,
-            meals,
-        })
+        // Ok(Self {
+        //     locations,
+        //     allergens,
+        //     meals,
+        // })
+        Ok(())
     }
 
-    pub fn get_meals(&self) -> &Vec<Meal> {
+    fn get_meals(&'a self) -> &'a Vec<Meal> {
         &self.meals
     }
 
-    pub fn get_allergens(&self) -> &Vec<Allergen> {
+    fn get_allergens(&'a self) -> &'a Vec<Allergen> {
         &self.allergens
     }
 
-    pub fn get_locations(&self) -> &Vec<APILocation> {
+    fn get_locations(&'a self) -> &'a Vec<APILocation> {
         &self.locations
     }
 }
