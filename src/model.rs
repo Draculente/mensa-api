@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use serde::Serialize;
 
 pub trait SourceData: Sync + Send {
@@ -6,6 +7,7 @@ pub trait SourceData: Sync + Send {
     fn get_locations(&self) -> &Vec<APILocation>;
 }
 
+#[async_trait(?Send)]
 pub trait Source {
     type Item: SourceData + Sync;
 

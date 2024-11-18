@@ -52,16 +52,16 @@ pub(crate) trait Cache<'a> {
 #[derive(Debug, Clone)]
 pub(crate) struct TTLCache<'a, T>
 where
-    T: Source<Item = Box<dyn SourceData>>,
+    T: Source<Item = dyn SourceData>,
 {
-    source: T,
+    source: Box<T>,
     data: Option<&'a T::Item>,
     last_updated: DateTime<Utc>,
     ttl: Duration,
 }
 
-impl<'a, T: Source<Item = Box<dyn SourceData>>> TTLCache<'a, T> {
-    fn new(source: T, ttl: Duration) -> Self {
+impl<'a, T: Source<Item = dyn SourceData>> TTLCache<'a, T> {
+    fn new(source: Box<T>, ttl: Duration) -> Self {
         println!("Cache initialized with ttl of {ttl}");
         Self {
             source,

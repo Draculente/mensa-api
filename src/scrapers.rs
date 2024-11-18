@@ -1,4 +1,5 @@
 use anyhow::anyhow;
+use async_trait::async_trait;
 use htmlentity::entity::decode;
 use htmlentity::entity::ICodedDataTrait;
 use itertools::Itertools;
@@ -20,6 +21,7 @@ pub struct LuebeckMensaSource {
     data: LuebeckData,
 }
 
+#[async_trait(?Send)]
 impl Source for LuebeckMensaSource {
     type Item = LuebeckData;
 

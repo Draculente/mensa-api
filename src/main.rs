@@ -1,13 +1,14 @@
 use std::{convert::Infallible, sync::Arc};
 
+use mensa_api::scrapers::LuebeckMensaSource;
 use serde::Serialize;
 use tokio::sync::RwLock;
 
 use envconfig::Envconfig;
 use mensa_api::api_filter::{APIFilter, AllergensQuery, LocationsQuery, MealsQuery};
-use mensa_api::cache::{Store, TTLCache};
+use mensa_api::cache::Store;
 use mensa_api::config::Config;
-use mensa_api::model::{APILocation, Allergen, Data, Meal, Source};
+use mensa_api::model::{APILocation, Allergen, Meal, Source, SourceData};
 use warp::http::StatusCode;
 use warp::{
     reject::{Reject, Rejection},
@@ -81,7 +82,7 @@ async fn main() {
 async fn run() -> anyhow::Result<()> {
     let config = Config::init_from_env()?;
 
-    let sources: Vec<dyn Source> = vec![LuebeckMensaSource];
+    let sources: Vec<Box<dyn Source<Item = dyn SourceData>>> = vec![LuebeckMensaSource];
 
     let store = Store::new(chrono::Duration::seconds(config.ttl as i64), sources);
 
