@@ -1,20 +1,19 @@
 use serde::{Deserialize, Serialize};
 
-use crate::model::{APILocation, Allergen, Location, Meal};
-use strum::IntoEnumIterator;
+use crate::model::{APILocation, Allergen, Meal};
 
 pub trait APIFilter<T>: for<'a> Deserialize<'a> + Send {
     fn accepts(&self, to_filter: &T) -> bool;
     fn get_location_query_string(&self) -> &str;
-    fn get_location_query(&self) -> Vec<Location> {
-        Location::iter()
-            .filter(|l| {
-                let api_location: APILocation = (*l).into();
-                self.get_location_query_string()
-                    .contains(&api_location.code)
-            })
-            .collect()
-    }
+    // fn get_location_query(&self) -> Vec<Location> {
+    //     Location::iter()
+    //         .filter(|l| {
+    //             let api_location: APILocation = (*l).into();
+    //             self.get_location_query_string()
+    //                 .contains(&api_location.code)
+    //         })
+    //         .collect()
+    // }
     fn filter<'a>(&self, to_be_filtered: &'a Vec<T>) -> Vec<&'a T> {
         to_be_filtered.iter().filter(|t| self.accepts(t)).collect()
     }

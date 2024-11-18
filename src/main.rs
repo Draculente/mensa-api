@@ -5,9 +5,9 @@ use tokio::sync::RwLock;
 
 use envconfig::Envconfig;
 use mensa_api::api_filter::{APIFilter, AllergensQuery, LocationsQuery, MealsQuery};
-use mensa_api::cache::Cache;
+use mensa_api::cache::{Store, TTLCache};
 use mensa_api::config::Config;
-use mensa_api::model::{APILocation, Allergen, Data, Meal};
+use mensa_api::model::{APILocation, Allergen, Data, Meal, Source};
 use warp::http::StatusCode;
 use warp::{
     reject::{Reject, Rejection},
@@ -69,7 +69,7 @@ struct ErrorResponse {
     message: String,
 }
 
-type State = Arc<RwLock<Cache>>;
+type State = Arc<RwLock<TTLCache>>;
 
 #[tokio::main]
 async fn main() {
@@ -80,7 +80,12 @@ async fn main() {
 
 async fn run() -> anyhow::Result<()> {
     let config = Config::init_from_env()?;
-    let state = Arc::new(RwLock::new(Cache::new(chrono::Duration::seconds(
+
+    let sources: Vec<dyn Source> = vec![LuebeckMensaSource];
+
+    let store = Store::new(chrono::Duration::seconds(config.ttl as i64), sources);
+
+    let state = Arc::new(RwLock::new(TTLCache::new(chrono::Duration::seconds(
         config.ttl as i64,
     ))?));
 
