@@ -71,13 +71,16 @@ async fn scrape_meals_of_week(
                         r#"</?\w+((\s+\w+(\s*=\s*(?:".*?"|'.*?'|[^'">\s]+))?)+\s*|\s*)/?>"#,
                     )
                     .expect("Name Regex failed");
-                    let inner_html = name_el.inner_html();
+                    let inner_html = name_el.inner_html().replace("<br>", " ");
                     let name_vec = re
                         .split(&inner_html)
-                        .filter(|item| *item != "" && !item.starts_with("(") && !item.contains("="))
-                        .map(|item| item.trim())
+                        .filter(|item| {
+                            *item != ""
+                                && (item.contains("(BIO)") || !item.starts_with("("))
+                                && !item.contains("=")
+                        })
                         .collect::<Vec<&str>>();
-                    let name_str = name_vec.join(", ");
+                    let name_str = name_vec.join("").trim().split_whitespace().join(" ");
                     decode(name_str.as_bytes()).to_string()
                 })?;
 
