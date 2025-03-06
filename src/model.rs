@@ -1,4 +1,7 @@
+use serde::ser::SerializeSeq;
+use serde::ser::SerializeStruct;
 use serde::Serialize;
+use serde::Serializer;
 
 use crate::scrapers::{scrape_allergens, scrape_meals};
 use anyhow::anyhow;
@@ -42,6 +45,7 @@ impl Data {
 pub struct Allergen {
     pub(crate) code: String,
     pub(crate) name: String,
+    pub(crate) language: Language,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -49,6 +53,7 @@ pub struct APILocation {
     pub(crate) code: String,
     pub(crate) name: String,
     pub(crate) city: String,
+    pub(crate) available_languages: Vec<Language>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -58,8 +63,71 @@ pub struct Meal {
     pub(crate) price: Prices,
     pub(crate) vegan: bool,
     pub(crate) vegetarian: bool,
+    #[serde(serialize_with = "serialize_nested_location")]
     pub(crate) location: APILocation,
+    #[serde(serialize_with = "serialize_nested_allergen")]
     pub(crate) allergens: Vec<Allergen>,
+    pub(crate) language: Language,
+}
+
+fn serialize_nested_location<S>(nested: &APILocation, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let mut state = serializer.serialize_struct("APILocation", 2)?;
+    state.serialize_field("code", &nested.code)?;
+    state.serialize_field("city", &nested.city)?;
+    state.end()
+}
+
+fn serialize_nested_allergen<S>(nested: &Vec<Allergen>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let mut state = serializer.serialize_seq(Some(nested.len()))?;
+    for e in nested {
+        let nested_allergen: NestedAllergen = NestedAllergen::from(e);
+        state.serialize_element(&nested_allergen)?;
+    }
+    state.end()
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct NestedAllergen<'a> {
+    code: &'a str,
+    name: &'a str,
+}
+
+impl<'a> From<&'a Allergen> for NestedAllergen<'a> {
+    fn from(value: &'a Allergen) -> Self {
+        Self {
+            code: &value.code,
+            name: &value.name,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct Language {
+    /// The native name of the language
+    pub(crate) name: String,
+    /// The ISO 639 language code
+    pub(crate) code: String,
+}
+
+impl Language {
+    pub(crate) fn german() -> Self {
+        Self {
+            name: "Deutsch".to_owned(),
+            code: "de".to_owned(),
+        }
+    }
+    pub(crate) fn english() -> Self {
+        Self {
+            name: "English".to_owned(),
+            code: "en".to_owned(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -127,16 +195,19 @@ impl Into<APILocation> for Location {
                 code: "HL_MH".to_string(),
                 name: "Musikhochschule".to_string(),
                 city: "Lübeck".to_string(),
+                available_languages: vec![Language::german(), Language::english()],
             },
             Location::Cafeteria => APILocation {
                 code: "HL_CA".to_string(),
                 name: "Cafeteria".to_string(),
                 city: "Lübeck".to_string(),
+                available_languages: vec![Language::german(), Language::english()],
             },
             Location::Mensa => APILocation {
                 code: "HL_ME".to_string(),
                 name: "Mensa".to_string(),
                 city: "Lübeck".to_string(),
+                available_languages: vec![Language::german(), Language::english()],
             },
         }
     }
