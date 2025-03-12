@@ -23,6 +23,14 @@ paths:
             type: "array"
             items:
               type: "string"
+        - name: language
+          in: query
+          description: "Filter by language codes"
+          required: false
+          schema:
+            type: "array"
+            items:
+              type: "string"
         - name: excludeAllergens
           in: query
           description: "List of allergen codes to exclude from the results"
@@ -95,6 +103,15 @@ paths:
                                 type: "string"
                               name:
                                 type: "string"
+                        language: 
+                          type: "object"
+                          properties:
+                            code: 
+                              type: "string"
+                              description: "The ISO 639 language code"
+                            name: 
+                              type: "string"
+                              description: "The native name of the language"
 
   /allergens:
     get:
@@ -111,6 +128,14 @@ paths:
         - name: name
           in: query
           description: "Filter by allergen names"
+          required: false
+          schema:
+            type: "array"
+            items:
+              type: "string"
+        - name: language
+          in: query
+          description: "Filter by language codes"
           required: false
           schema:
             type: "array"
@@ -143,6 +168,15 @@ paths:
                           type: "string"
                         name:
                           type: "string"
+                        language: 
+                          type: "object"
+                          properties:
+                            code: 
+                              type: "string"
+                              description: "The ISO 639 language code"
+                            name: 
+                              type: "string"
+                              description: "The native name of the language"
 
   /locations:
     get:
@@ -193,3 +227,12 @@ paths:
                           type: "string"
                         city:
                           type: "string"
+                        available_languages:
+                          type: "object"
+                          properties:
+                            code: 
+                              type: "string"
+                              description: "The ISO 639 language code"
+                            name: 
+                              type: "string"
+                              description: "The native name of the language"
