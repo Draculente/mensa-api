@@ -128,7 +128,10 @@ async fn scrape_meals_of_week(
             // TODO: Do not clone, but use a reference into the allergen vec.
             let meal_allergens: Vec<Allergen> = allergens
                 .iter()
-                .filter(|allergen| raw_allergens.contains(&allergen.code))
+                .filter(|allergen| {
+                    raw_allergens.contains(&allergen.code)
+                        && allergen.language.code == language.code
+                })
                 .map(|a| a.clone())
                 .collect();
 
