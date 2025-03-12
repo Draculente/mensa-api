@@ -1,5 +1,6 @@
 use std::{convert::Infallible, sync::Arc};
 
+use htmlentity::data;
 use serde::Serialize;
 use tokio::sync::RwLock;
 
@@ -84,6 +85,26 @@ async fn run() -> anyhow::Result<()> {
         config.ttl as i64,
     ))?));
 
+    // Fetch the data every ttl seconds in extra thread
+    tokio::spawn({
+        let state = state.clone();
+        async move {
+            loop {
+                let data = Cache::fetch_data().await;
+                match data {
+                    Ok(data) => {
+                        let mut writable = state.write().await;
+                        writable.set_data(data);
+                        println!("Cache refreshed...")
+                    }
+                    Err(e) => eprint!("{e}"),
+                }
+                tokio::time::sleep(std::time::Duration::from_secs(config.ttl as u64)).await;
+            }
+        }
+    });
+
+    // Webserver routes
     let info_route = warp::path!("v2")
         .or(warp::path::end())
         .map(|_| "Mensa-API v2\nMade with 💙 in Lübeck\nhttps://github.com/Draculente/mensa-api/");
@@ -92,20 +113,20 @@ async fn run() -> anyhow::Result<()> {
         .and(with_state_and_query_filter::<Meal, MealsQuery>(
             state.clone(),
         ))
-        .and_then(move |(query, state)| default_handler(query, state, |d| d.get_meals()));
+        .and_then(move |query, state| default_handler(query, state, |d| d.get_meals()));
 
     let allergens_route = warp::path!("v2" / "allergenes")
         .or(warp::path!("v2" / "allergens"))
         .and(with_state_and_query_filter::<Allergen, AllergensQuery>(
             state.clone(),
         ))
-        .and_then(move |_, (query, state)| default_handler(query, state, |d| d.get_allergens()));
+        .and_then(move |_, query, state| default_handler(query, state, |d| d.get_allergens()));
 
     let locations_route = warp::path!("v2" / "locations")
         .and(with_state_and_query_filter::<APILocation, LocationsQuery>(
             state.clone(),
         ))
-        .and_then(move |(query, state)| default_handler(query, state, |d| d.get_locations()));
+        .and_then(move |query, state| default_handler(query, state, |d| d.get_locations()));
 
     let routes = meals_route
         .or(allergens_route)
@@ -123,28 +144,14 @@ async fn run() -> anyhow::Result<()> {
 
 fn with_state_and_query_filter<A, T: APIFilter<A> + 'static>(
     state: State,
-) -> impl Filter<Extract = ((impl APIFilter<A>, State),), Error = warp::Rejection> + Clone {
-    warp::any()
-        .and(warp::query::<T>())
-        .and(with_state(state))
-        .and_then(ensure_up_to_date)
+) -> impl Filter<Extract = (impl APIFilter<A>, State), Error = warp::Rejection> + Clone {
+    warp::any().and(warp::query::<T>()).and(with_state(state))
 }
 
 fn with_state(
     state: State,
 ) -> impl Filter<Extract = (State,), Error = std::convert::Infallible> + Clone {
     warp::any().map(move || state.clone())
-}
-
-async fn ensure_up_to_date<T>(
-    filter: impl APIFilter<T>,
-    cache: State,
-) -> Result<(impl APIFilter<T>, State), warp::Rejection> {
-    if cache.read().await.needs_update() {
-        let mut cache = cache.write().await;
-        cache.fetch().await.map_err(custom_reject)?;
-    }
-    Ok((filter, cache))
 }
 
 async fn default_handler<T: Serialize, F>(

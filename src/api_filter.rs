@@ -62,7 +62,9 @@ impl APIFilter<Meal> for MealsQuery {
                 .as_ref()
                 .cloned()
                 .unwrap_or_else(|| Language::german().code)
-                .contains(&meal.language.code)
+                .split(",")
+                .collect::<Vec<_>>()
+                .contains(&meal.language.code.as_str())
     }
 
     fn get_location_query_string(&self) -> &str {
@@ -94,7 +96,9 @@ impl APIFilter<Allergen> for AllergensQuery {
                 .as_ref()
                 .cloned()
                 .unwrap_or_else(|| Language::german().code)
-                .contains(&allergen.language.code)
+                .split(",")
+                .collect::<Vec<_>>()
+                .contains(&allergen.language.code.as_str())
     }
 
     fn get_location_query_string(&self) -> &str {
