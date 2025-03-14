@@ -76,6 +76,7 @@ where
 {
     let mut state = serializer.serialize_struct("APILocation", 2)?;
     state.serialize_field("code", &nested.code)?;
+    state.serialize_field("name", &nested.name)?;
     state.serialize_field("city", &nested.city)?;
     state.end()
 }
