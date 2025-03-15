@@ -6,17 +6,21 @@ use regex::Regex;
 use scraper::Html;
 use scraper::Selector;
 
-use crate::model::{Allergen, Location, Meal};
+use crate::model::{Allergen, Language, Location, Meal};
 use futures::future::join_all;
 use strum::IntoEnumIterator;
 
 pub async fn scrape_meals(allergens: &Vec<Allergen>) -> anyhow::Result<Vec<Meal>> {
     // 0,1
     let weeks = 0..2;
+    let langs = vec![Language::german(), Language::english()];
 
     let futures = weeks
         .cartesian_product(Location::iter().unique_by(|l| l.to_url_code()))
-        .map(|(week, location)| scrape_meals_of_week(location, week, allergens));
+        .cartesian_product(langs)
+        .map(|((week, location), language)| {
+            scrape_meals_of_week(location, language, week, allergens)
+        });
 
     let vecs_of_meals = join_all(futures)
         .await
@@ -25,13 +29,21 @@ pub async fn scrape_meals(allergens: &Vec<Allergen>) -> anyhow::Result<Vec<Meal>
 
     Ok(vecs_of_meals.into_iter().flatten().collect())
 }
+
 async fn scrape_meals_of_week(
     location: Location,
+    language: Language,
     week: usize,
     allergens: &Vec<Allergen>,
 ) -> anyhow::Result<Vec<Meal>> {
     let url = format!(
-        "https://studentenwerk.sh/de/mensen-in-luebeck?ort=3&mensa={}&nw={}#mensaplan",
+        "https://studentenwerk.sh/{}/{}?ort=3&mensa={}&nw={}#mensaplan",
+        language.code,
+        if language.code == "en" {
+            "canteens-in-luebeck"
+        } else {
+            "mensen-in-luebeck"
+        },
         location.to_url_code(),
         week
     );
@@ -100,7 +112,7 @@ async fn scrape_meals_of_week(
                     .select(&menu_location_selector)
                     .next()
                     .map(|e| {
-                        if e.inner_html().contains("Mensa") {
+                        if e.inner_html().contains("Mensa") || e.inner_html().contains("Canteen") {
                             Location::Mensa
                         } else {
                             Location::Cafeteria
@@ -116,7 +128,10 @@ async fn scrape_meals_of_week(
             // TODO: Do not clone, but use a reference into the allergen vec.
             let meal_allergens: Vec<Allergen> = allergens
                 .iter()
-                .filter(|allergen| raw_allergens.contains(&allergen.code))
+                .filter(|allergen| {
+                    raw_allergens.contains(&allergen.code)
+                        && allergen.language.code == language.code
+                })
                 .map(|a| a.clone())
                 .collect();
 
@@ -139,14 +154,33 @@ async fn scrape_meals_of_week(
                 location: meal_location.into(),
                 allergens: meal_allergens,
                 date: date.to_string(),
+                language: language.clone(),
             })
         })
         .collect()
 }
 
 pub async fn scrape_allergens() -> anyhow::Result<Vec<Allergen>> {
-    let url = "https://studentenwerk.sh/de/mensen-in-luebeck?ort=3&mensa=8&nw=0#mensaplan";
+    let mut allergens = scrape_lanuage_allergens(
+        Language::german(),
+        "https://studentenwerk.sh/de/mensen-in-luebeck?ort=3&mensa=8&nw=0#mensaplan",
+    )
+    .await?;
+    let mut english_allergens = scrape_lanuage_allergens(
+        Language::english(),
+        "https://studentenwerk.sh/en/canteens-in-luebeck?ort=3&mensa=8&nw=0#mensaplan",
+    )
+    .await?;
 
+    allergens.append(&mut english_allergens);
+
+    Ok(allergens)
+}
+
+async fn scrape_lanuage_allergens(
+    lang: Language,
+    url: &'static str,
+) -> anyhow::Result<Vec<Allergen>> {
     let html = reqwest::get(url).await?.text().await?;
 
     let document = scraper::Html::parse_document(&html);
@@ -162,7 +196,11 @@ pub async fn scrape_allergens() -> anyhow::Result<Vec<Allergen>> {
         .map(|e| -> Option<Allergen> {
             let code = e.attr("data-wert")?.to_string();
             let name = e.child_elements().skip(1).next()?.inner_html();
-            Some(Allergen { code, name })
+            Some(Allergen {
+                code,
+                name,
+                language: lang.clone(),
+            })
         })
         .filter_map(|a| a)
         .collect();

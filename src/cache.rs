@@ -22,10 +22,23 @@ impl Cache {
         self.last_updated + self.ttl < now
     }
 
+    #[deprecated]
     pub async fn fetch(&mut self) -> anyhow::Result<()> {
         self.data = Some(Data::fetch().await?);
         self.last_updated = chrono::offset::Utc::now();
         Ok(())
+    }
+
+    pub async fn fetch_data() -> anyhow::Result<Data> {
+        Data::fetch().await
+    }
+
+    pub fn set_data(&mut self, data: Data) {
+        if self.data.is_none() {
+            println!("Cache ready...");
+        }
+        self.data = Some(data);
+        self.last_updated = chrono::offset::Utc::now();
     }
 
     pub fn new(ttl: Duration) -> anyhow::Result<Self> {

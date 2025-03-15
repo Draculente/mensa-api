@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::model::{APILocation, Allergen, Location, Meal};
+use crate::model::{APILocation, Allergen, Language, Location, Meal};
 use strum::IntoEnumIterator;
 
 pub trait APIFilter<T>: for<'a> Deserialize<'a> + Send {
@@ -27,6 +27,7 @@ pub struct MealsQuery {
     exclude_allergens: Option<String>,
     vegan: Option<bool>,
     vegetarian: Option<bool>,
+    language: Option<String>,
 }
 
 impl APIFilter<Meal> for MealsQuery {
@@ -56,6 +57,14 @@ impl APIFilter<Meal> for MealsQuery {
                 .as_ref()
                 .map(|vegetarian| &meal.vegetarian == vegetarian)
                 .unwrap_or(true)
+            && self
+                .language
+                .as_ref()
+                .cloned()
+                .unwrap_or_else(|| Language::german().code)
+                .split(",")
+                .collect::<Vec<_>>()
+                .contains(&meal.language.code.as_str())
     }
 
     fn get_location_query_string(&self) -> &str {
@@ -68,6 +77,7 @@ pub struct AllergensQuery {
     code: Option<String>,
     name: Option<String>,
     location: String,
+    language: Option<String>,
 }
 
 impl APIFilter<Allergen> for AllergensQuery {
@@ -81,6 +91,14 @@ impl APIFilter<Allergen> for AllergensQuery {
                 .as_ref()
                 .map(|n| n.contains(&allergen.code))
                 .unwrap_or(true)
+            && self
+                .language
+                .as_ref()
+                .cloned()
+                .unwrap_or_else(|| Language::german().code)
+                .split(",")
+                .collect::<Vec<_>>()
+                .contains(&allergen.language.code.as_str())
     }
 
     fn get_location_query_string(&self) -> &str {
