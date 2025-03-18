@@ -22,7 +22,7 @@ The app is configured via environment variables. The following variables are ava
 | Name                  | Description                                                                                            |
 | --------------------- | ------------------------------------------------------------------------------------------------------ |
 | `PORT`                | The port the app will listen on. Defaults to `3030`.                                                   |
-| `TTL`      | The time to live of the menu cache containing the meals in seconds. Defaults to `60 * 10`. |
+| `TTL`      | The time to live of the menu cache containing the meals in seconds. Defaults to `60 * 45`. |
 
 ## Local Setup
 
