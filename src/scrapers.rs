@@ -16,7 +16,7 @@ pub async fn scrape_meals(allergens: &Vec<Allergen>) -> anyhow::Result<Vec<Meal>
     let langs = vec![Language::german(), Language::english()];
 
     let futures = weeks
-        .cartesian_product(Location::iter().unique_by(|l| l.to_url_code()))
+        .cartesian_product(Location::iter().unique_by(|l| (l.get_mensa_code(), l.get_ort_code())))
         .cartesian_product(langs)
         .map(|((week, location), language)| {
             scrape_meals_of_week(location, language, week, allergens)
@@ -37,14 +37,15 @@ async fn scrape_meals_of_week(
     allergens: &Vec<Allergen>,
 ) -> anyhow::Result<Vec<Meal>> {
     let url = format!(
-        "https://studentenwerk.sh/{}/{}?ort=3&mensa={}&nw={}#mensaplan",
+        "https://studentenwerk.sh/{}/{}?ort={}&mensa={}&nw={}#mensaplan",
         language.code,
         if language.code == "en" {
-            "canteens-in-luebeck"
+            "food-overview"
         } else {
-            "mensen-in-luebeck"
+            "essen-uebersicht"
         },
-        location.to_url_code(),
+        location.get_ort_code(),
+        location.get_mensa_code(),
         week
     );
 
@@ -105,17 +106,17 @@ async fn scrape_meals_of_week(
                 .is_some_and(|a| a.contains("ve"))
                 || vegan;
 
-            let meal_location = if location == Location::Musikhochschule {
-                Location::Musikhochschule
+            let meal_location = if !location.is_double() {
+                location
             } else {
                 meal_info
                     .select(&menu_location_selector)
                     .next()
                     .map(|e| {
                         if e.inner_html().contains("Mensa") || e.inner_html().contains("Canteen") {
-                            Location::Mensa
+                            location.get_mensa_option()
                         } else {
-                            Location::Cafeteria
+                            location.get_cafeteria_option()
                         }
                     })
                     .ok_or(anyhow!("Failed to select menu location"))?

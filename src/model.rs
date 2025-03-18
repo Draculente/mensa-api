@@ -172,42 +172,229 @@ impl TryFrom<String> for Prices {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter)]
 pub enum Location {
-    Musikhochschule,
-    Cafeteria,
-    Mensa,
+    LuebeckMusikhochschule,
+    LuebeckCafeteria,
+    LuebeckMensa,
+    KielMensa1,
+    KielCafeteria1,
+    KielMensa2,
+    KielCafeteria2,
+    KielMensaKesselhaus,
+    KielSchwentine,
+    KielDiner,
+    KielDockside,
+    HeideMensa,
+    FlensburgMensa,
+    FlensburgCafeteriaA,
+    FlensburgCafeteriaB,
+    OsterroenfeldMensa,
+    WedelCafeteria,
 }
 
 impl Location {
     /// The speiseplan website uses number codes to differentiate between locations.
     /// This method translates the location into these codes.
-    pub(crate) fn to_url_code(&self) -> usize {
+    pub(crate) fn get_mensa_code(&self) -> usize {
         match self {
-            Location::Musikhochschule => 9,
-            Location::Cafeteria => 8,
-            Location::Mensa => 8,
+            Location::LuebeckMusikhochschule => 9,
+            Location::LuebeckCafeteria => 8,
+            Location::LuebeckMensa => 8,
+            Location::KielMensa1 => 1,
+            Location::KielCafeteria1 => 1,
+            Location::KielMensa2 => 2,
+            Location::KielCafeteria2 => 2,
+            Location::KielMensaKesselhaus => 4,
+            Location::KielSchwentine => 5,
+            Location::KielDiner => 6,
+            Location::KielDockside => 16,
+            Location::HeideMensa => 16,
+            Location::FlensburgMensa => 7,
+            Location::FlensburgCafeteriaA => 7,
+            Location::FlensburgCafeteriaB => 14,
+            Location::OsterroenfeldMensa => 14,
+            Location::WedelCafeteria => 15,
         }
+    }
+    /// The speiseplan website uses number codes to differentiate between locations.
+    /// This method translates the location into these codes.
+    pub(crate) fn get_ort_code(&self) -> usize {
+        match self {
+            Location::LuebeckMusikhochschule => 3,
+            Location::LuebeckCafeteria => 3,
+            Location::LuebeckMensa => 3,
+            Location::KielMensa1 => 1,
+            Location::KielCafeteria1 => 1,
+            Location::KielMensa2 => 1,
+            Location::KielCafeteria2 => 1,
+            Location::KielMensaKesselhaus => 1,
+            Location::KielSchwentine => 1,
+            Location::KielDiner => 1,
+            Location::KielDockside => 1,
+            Location::HeideMensa => 4,
+            Location::FlensburgMensa => 2,
+            Location::FlensburgCafeteriaA => 2,
+            Location::FlensburgCafeteriaB => 2,
+            Location::OsterroenfeldMensa => 6,
+            Location::WedelCafeteria => 5,
+        }
+    }
+
+    pub(crate) fn get_cafeteria_option(&self) -> Self {
+        match self {
+            Location::LuebeckMusikhochschule => Location::LuebeckMusikhochschule,
+            Location::LuebeckCafeteria => Self::LuebeckCafeteria,
+            Location::LuebeckMensa => Self::LuebeckCafeteria,
+            Location::KielMensa1 => Self::KielCafeteria1,
+            Location::KielCafeteria1 => Self::KielCafeteria1,
+            Location::KielMensa2 => Self::KielCafeteria2,
+            Location::KielCafeteria2 => Self::KielCafeteria2,
+            Location::KielMensaKesselhaus => Self::KielMensaKesselhaus,
+            Location::KielSchwentine => Self::KielSchwentine,
+            Location::KielDiner => Self::KielDiner,
+            Location::KielDockside => Self::KielDockside,
+            Location::HeideMensa => Self::HeideMensa,
+            Location::FlensburgMensa => Self::FlensburgCafeteriaA,
+            Location::FlensburgCafeteriaA => Self::FlensburgCafeteriaA,
+            Location::FlensburgCafeteriaB => Self::FlensburgCafeteriaB,
+            Location::OsterroenfeldMensa => Self::OsterroenfeldMensa,
+            Location::WedelCafeteria => Self::WedelCafeteria,
+        }
+    }
+
+    pub(crate) fn get_mensa_option(&self) -> Self {
+        match self {
+            Location::LuebeckMusikhochschule => Location::LuebeckMusikhochschule,
+            Location::LuebeckCafeteria => Self::LuebeckMensa,
+            Location::LuebeckMensa => Self::LuebeckMensa,
+            Location::KielMensa1 => Self::KielMensa1,
+            Location::KielCafeteria1 => Self::KielMensa1,
+            Location::KielMensa2 => Self::KielMensa2,
+            Location::KielCafeteria2 => Self::KielMensa2,
+            Location::KielMensaKesselhaus => Self::KielMensaKesselhaus,
+            Location::KielSchwentine => Self::KielSchwentine,
+            Location::KielDiner => Self::KielDiner,
+            Location::KielDockside => Self::KielDockside,
+            Location::HeideMensa => Self::HeideMensa,
+            Location::FlensburgMensa => Self::FlensburgMensa,
+            Location::FlensburgCafeteriaA => Self::FlensburgMensa,
+            Location::FlensburgCafeteriaB => Self::FlensburgCafeteriaB,
+            Location::OsterroenfeldMensa => Self::OsterroenfeldMensa,
+            Location::WedelCafeteria => Self::WedelCafeteria,
+        }
+    }
+
+    pub(crate) fn is_double(&self) -> bool {
+        Self::iter().any(|e| {
+            e.get_ort_code() == self.get_ort_code()
+                && e.get_mensa_code() == self.get_mensa_code()
+                && e != *self
+        })
     }
 }
 
 impl Into<APILocation> for Location {
     fn into(self) -> APILocation {
         match self {
-            Location::Musikhochschule => APILocation {
+            Location::LuebeckMusikhochschule => APILocation {
                 code: "HL_MH".to_string(),
                 name: "Musikhochschule".to_string(),
                 city: "Lübeck".to_string(),
                 available_languages: vec![Language::german(), Language::english()],
             },
-            Location::Cafeteria => APILocation {
+            Location::LuebeckCafeteria => APILocation {
                 code: "HL_CA".to_string(),
                 name: "Cafeteria".to_string(),
                 city: "Lübeck".to_string(),
                 available_languages: vec![Language::german(), Language::english()],
             },
-            Location::Mensa => APILocation {
+            Location::LuebeckMensa => APILocation {
                 code: "HL_ME".to_string(),
                 name: "Mensa".to_string(),
                 city: "Lübeck".to_string(),
+                available_languages: vec![Language::german(), Language::english()],
+            },
+            Location::KielMensa1 => APILocation {
+                code: "KI_ME1".to_string(),
+                name: "Mensa I".to_string(),
+                city: "Kiel".to_string(),
+                available_languages: vec![Language::german(), Language::english()],
+            },
+            Location::KielCafeteria1 => APILocation {
+                code: "KI_CA1".to_string(),
+                name: "Cafeteria I".to_string(),
+                city: "Kiel".to_string(),
+                available_languages: vec![Language::german(), Language::english()],
+            },
+            Location::KielMensa2 => APILocation {
+                code: "KI_ME2".to_string(),
+                name: "Mensa II".to_string(),
+                city: "Kiel".to_string(),
+                available_languages: vec![Language::german(), Language::english()],
+            },
+            Location::KielCafeteria2 => APILocation {
+                code: "KI_CA2".to_string(),
+                name: "Cafeteria II".to_string(),
+                city: "Kiel".to_string(),
+                available_languages: vec![Language::german(), Language::english()],
+            },
+            Location::KielMensaKesselhaus => APILocation {
+                code: "KI_KESSELHAUS".to_string(),
+                name: "Kesselhaus".to_string(),
+                city: "Kiel".to_string(),
+                available_languages: vec![Language::german(), Language::english()],
+            },
+            Location::KielSchwentine => APILocation {
+                code: "KI_SCHWENTINE".to_string(),
+                name: "Schwentine Mensa".to_string(),
+                city: "Kiel".to_string(),
+                available_languages: vec![Language::german(), Language::english()],
+            },
+            Location::KielDiner => APILocation {
+                code: "KI_DINER".to_string(),
+                name: "American Diner".to_string(),
+                city: "Kiel".to_string(),
+                available_languages: vec![Language::german(), Language::english()],
+            },
+            Location::KielDockside => APILocation {
+                code: "KI_DOCKSIDE".to_string(),
+                name: "Mensa „Dockside“".to_string(),
+                city: "Kiel".to_string(),
+                available_languages: vec![Language::german(), Language::english()],
+            },
+            Location::HeideMensa => APILocation {
+                code: "HEI_ME1".to_string(),
+                name: "Mensa".to_string(),
+                city: "Heide".to_string(),
+                available_languages: vec![Language::german(), Language::english()],
+            },
+            Location::FlensburgMensa => APILocation {
+                code: "FL_ME1".to_string(),
+                name: "Mensa".to_string(),
+                city: "Flensburg".to_string(),
+                available_languages: vec![Language::german(), Language::english()],
+            },
+            Location::FlensburgCafeteriaA => APILocation {
+                code: "FL_CA1".to_string(),
+                name: "Cafeteria A".to_string(),
+                city: "Flensburg".to_string(),
+                available_languages: vec![Language::german(), Language::english()],
+            },
+            Location::FlensburgCafeteriaB => APILocation {
+                code: "FL_CA2".to_string(),
+                name: "Cafeteria B".to_string(),
+                city: "Flensburg".to_string(),
+                available_languages: vec![Language::german(), Language::english()],
+            },
+            Location::OsterroenfeldMensa => APILocation {
+                code: "RD_ME1".to_string(),
+                name: "Mensa".to_string(),
+                city: "Osterrönfeld".to_string(),
+                available_languages: vec![Language::german(), Language::english()],
+            },
+            Location::WedelCafeteria => APILocation {
+                code: "PI_CA1".to_string(),
+                name: "Cafeteria".to_string(),
+                city: "Wedel".to_string(),
                 available_languages: vec![Language::german(), Language::english()],
             },
         }
