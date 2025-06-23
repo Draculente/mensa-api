@@ -175,6 +175,7 @@ pub enum Location {
     LuebeckMusikhochschule,
     LuebeckCafeteria,
     LuebeckMensa,
+    LuebeckBitsBytes,
     KielMensa1,
     KielCafeteria1,
     KielMensa2,
@@ -213,6 +214,7 @@ impl Location {
             Location::FlensburgCafeteriaB => 14,
             Location::OsterroenfeldMensa => 14,
             Location::WedelCafeteria => 15,
+            Location::LuebeckBitsBytes => 17,
         }
     }
     /// The speiseplan website uses number codes to differentiate between locations.
@@ -236,6 +238,7 @@ impl Location {
             Location::FlensburgCafeteriaB => 2,
             Location::OsterroenfeldMensa => 6,
             Location::WedelCafeteria => 5,
+            Location::LuebeckBitsBytes => 3,
         }
     }
 
@@ -258,6 +261,7 @@ impl Location {
             Location::FlensburgCafeteriaB => Self::FlensburgCafeteriaB,
             Location::OsterroenfeldMensa => Self::OsterroenfeldMensa,
             Location::WedelCafeteria => Self::WedelCafeteria,
+            Location::LuebeckBitsBytes => Self::LuebeckBitsBytes,
         }
     }
 
@@ -280,6 +284,7 @@ impl Location {
             Location::FlensburgCafeteriaB => Self::FlensburgCafeteriaB,
             Location::OsterroenfeldMensa => Self::OsterroenfeldMensa,
             Location::WedelCafeteria => Self::WedelCafeteria,
+            Location::LuebeckBitsBytes => Self::LuebeckBitsBytes,
         }
     }
 
@@ -395,6 +400,12 @@ impl Into<APILocation> for Location {
                 code: "PI_CA1".to_string(),
                 name: "Cafeteria".to_string(),
                 city: "Wedel".to_string(),
+                available_languages: vec![Language::german(), Language::english()],
+            },
+            Location::LuebeckBitsBytes => APILocation {
+                code: "HL_BB".to_string(),
+                name: "Bits + Bytes".to_string(),
+                city: "Lübeck".to_string(),
                 available_languages: vec![Language::german(), Language::english()],
             },
         }
