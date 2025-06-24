@@ -1,4 +1,4 @@
-This project is a web scraper that scans the canteen website of the University of Lübeck and extracts information about the menu. It provides access to the current menus and their details, such as names, prices and vegetarian options.
+This project is a web scraper that scans the canteen website of the Studentenwerk Schleswig Holstein and extracts information about the menu. It provides access to the current menus and their details, such as names, prices and vegetarian options.
 
 ## API
 
