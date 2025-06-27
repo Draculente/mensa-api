@@ -406,7 +406,7 @@ impl Into<APILocation> for Location {
                 code: "HL_BB".to_string(),
                 name: "Bits + Bytes".to_string(),
                 city: "Lübeck".to_string(),
-                available_languages: vec![Language::german(), Language::english()],
+                available_languages: vec![Language::german()],
             },
         }
     }
