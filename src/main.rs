@@ -1,5 +1,6 @@
 use std::{convert::Infallible, sync::Arc};
 
+use chrono::Utc;
 use htmlentity::data;
 use serde::Serialize;
 use tokio::sync::RwLock;
@@ -90,12 +91,13 @@ async fn run() -> anyhow::Result<()> {
         let state = state.clone();
         async move {
             loop {
+                println!("{} Starting to load data...", chrono::Local::now());
                 let data = Cache::fetch_data().await;
                 match data {
                     Ok(data) => {
                         let mut writable = state.write().await;
                         writable.set_data(data);
-                        println!("Cache refreshed...")
+                        println!("{} Cache refreshed...", chrono::Local::now());
                     }
                     Err(e) => eprint!("{e}"),
                 }
