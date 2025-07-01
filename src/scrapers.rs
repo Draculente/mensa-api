@@ -127,7 +127,7 @@ async fn scrape_meals_of_week(
                 .ok_or(anyhow!("Failed to get allergen attr"))?;
 
             // TODO: Do not clone, but use a reference into the allergen vec.
-            let meal_allergens: Vec<Allergen> = allergens
+            let mut meal_allergens: Vec<Allergen> = allergens
                 .iter()
                 .filter(|allergen| {
                     raw_allergens.contains(&allergen.code)
@@ -135,6 +135,13 @@ async fn scrape_meals_of_week(
                 })
                 .map(|a| a.clone())
                 .collect();
+
+            if meal_info
+                .attr("data-arten")
+                .is_some_and(|a| a.contains("A"))
+            {
+                meal_allergens.push(Allergen::alkohol(language.code.as_str()));
+            }
 
             let date = date_str.ok_or(anyhow!("Failed to extract date info"))?;
 
@@ -174,6 +181,8 @@ pub async fn scrape_allergens() -> anyhow::Result<Vec<Allergen>> {
     .await?;
 
     allergens.append(&mut english_allergens);
+    allergens.push(Allergen::alkohol("de"));
+    allergens.push(Allergen::alkohol("en"));
 
     Ok(allergens)
 }

@@ -48,6 +48,18 @@ pub struct Allergen {
     pub(crate) language: Language,
 }
 
+impl Allergen {
+    pub fn alkohol(language_code: &str) -> Self {
+        let language = if language_code == "en" {
+            Language::english()
+        } else {
+            Language::german()
+        };
+
+        Allergen { code: "alko".to_owned(), name: "Alkohol".to_owned(), language }
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct APILocation {
     pub(crate) code: String,

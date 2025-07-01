@@ -65,7 +65,7 @@ impl APIFilter<Meal> for MealsQuery {
 pub struct AllergensQuery {
     code: Option<String>,
     name: Option<String>,
-    location: String,
+    location: Option<String>,
     language: Option<String>,
 }
 
