@@ -7,8 +7,11 @@ use scraper::Html;
 use scraper::Selector;
 
 use crate::model::{Allergen, Language, Location, Meal};
-use futures::future::join_all;
+use futures::StreamExt;
 use strum::IntoEnumIterator;
+
+/// Maximum number of simultaneous requests to the website while scraping.
+const MAX_CONCURRENT_REQUESTS: usize = 4;
 
 pub async fn scrape_meals(allergens: &Vec<Allergen>) -> anyhow::Result<Vec<Meal>> {
     // 0,1
@@ -22,7 +25,9 @@ pub async fn scrape_meals(allergens: &Vec<Allergen>) -> anyhow::Result<Vec<Meal>
             scrape_meals_of_week(location, language, week, allergens)
         });
 
-    let vecs_of_meals = join_all(futures)
+    let vecs_of_meals = futures::stream::iter(futures)
+        .buffer_unordered(MAX_CONCURRENT_REQUESTS)
+        .collect::<Vec<_>>()
         .await
         .into_iter()
         .collect::<anyhow::Result<Vec<_>>>()?;
@@ -51,6 +56,17 @@ async fn scrape_meals_of_week(
 
     let html = reqwest::get(url).await?.text().await?;
 
+    // Parsing is CPU-bound, so it must not run on the async worker threads.
+    let allergens = allergens.clone();
+    tokio::task::spawn_blocking(move || parse_meals(html, location, language, allergens)).await?
+}
+
+fn parse_meals(
+    html: String,
+    location: Location,
+    language: Language,
+    allergens: Vec<Allergen>,
+) -> anyhow::Result<Vec<Meal>> {
     let document = Html::parse_document(&html);
 
     let meal_info_selector =
@@ -193,6 +209,10 @@ async fn scrape_lanuage_allergens(
 ) -> anyhow::Result<Vec<Allergen>> {
     let html = reqwest::get(url).await?.text().await?;
 
+    tokio::task::spawn_blocking(move || parse_allergens(html, lang)).await?
+}
+
+fn parse_allergens(html: String, lang: Language) -> anyhow::Result<Vec<Allergen>> {
     let document = scraper::Html::parse_document(&html);
 
     let parent_element_selector = Selector::parse(".mbf_content").expect("Selector failed");
