@@ -56,7 +56,11 @@ impl Allergen {
             Language::german()
         };
 
-        Allergen { code: "alko".to_owned(), name: "Alkohol".to_owned(), language }
+        Allergen {
+            code: "alko".to_owned(),
+            name: "Alkohol".to_owned(),
+            language,
+        }
     }
 }
 
@@ -75,11 +79,30 @@ pub struct Meal {
     pub(crate) price: Prices,
     pub(crate) vegan: bool,
     pub(crate) vegetarian: bool,
+    /// Estimated CO₂ emissions of the meal in grams, if published.
+    pub(crate) co2_grams: Option<u32>,
+    /// CO₂ score of the studentenwerk: 1 to 3 leaves (3 is best), if published.
+    pub(crate) co2_score: Option<u8>,
+    pub(crate) dietary_preferences: DietaryPreferences,
     #[serde(serialize_with = "serialize_nested_location")]
     pub(crate) location: APILocation,
     #[serde(serialize_with = "serialize_nested_allergen")]
     pub(crate) allergens: Vec<Allergen>,
     pub(crate) language: Language,
+}
+
+/// Dietary information as marked on the website of the studentenwerk.
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct DietaryPreferences {
+    pub(crate) organic: bool,
+    pub(crate) contains_pork: bool,
+    pub(crate) contains_beef: bool,
+    pub(crate) contains_poultry: bool,
+    pub(crate) contains_alcohol: bool,
+    /// Marked as "Schleswig-Holstein Teller"
+    pub(crate) schleswig_holstein_plate: bool,
+    /// Marked as "Streetfood"
+    pub(crate) streetfood: bool,
 }
 
 fn serialize_nested_location<S>(nested: &APILocation, serializer: S) -> Result<S::Ok, S::Error>

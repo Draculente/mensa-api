@@ -51,6 +51,62 @@ paths:
           required: false
           schema:
             type: boolean
+        - name: organic
+          in: query
+          description: "Filter if the meals are organic. E.g. contains_pork=false returns only meals without pork"
+          required: false
+          schema:
+            type: boolean
+        - name: contains_pork
+          in: query
+          description: "Filter if the meals contain pork. E.g. contains_pork=false returns only meals without pork"
+          required: false
+          schema:
+            type: boolean
+        - name: contains_beef
+          in: query
+          description: "Filter if the meals contain beef. E.g. contains_pork=false returns only meals without pork"
+          required: false
+          schema:
+            type: boolean
+        - name: contains_poultry
+          in: query
+          description: "Filter if the meals contain poultry. E.g. contains_pork=false returns only meals without pork"
+          required: false
+          schema:
+            type: boolean
+        - name: contains_alcohol
+          in: query
+          description: "Filter if the meals contain alcohol. E.g. contains_pork=false returns only meals without pork"
+          required: false
+          schema:
+            type: boolean
+        - name: schleswig_holstein_plate
+          in: query
+          description: "Filter if the meals are marked as Schleswig-Holstein plate. E.g. contains_pork=false returns only meals without pork"
+          required: false
+          schema:
+            type: boolean
+        - name: streetfood
+          in: query
+          description: "Filter if the meals are marked as streetfood. E.g. contains_pork=false returns only meals without pork"
+          required: false
+          schema:
+            type: boolean
+        - name: max_co2_grams
+          in: query
+          description: "Maximum CO2 emissions in grams. Meals without CO2 information are excluded"
+          required: false
+          schema:
+            type: integer
+        - name: min_co2_score
+          in: query
+          description: "Minimum CO2 score (1 to 3 leaves, 3 is best). Meals without CO2 information are excluded"
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 3
       responses:
         "200":
           description: "Successful response"
@@ -85,6 +141,34 @@ paths:
                               type: "number"
                         vegetarian:
                           type: "boolean"
+                        co2_grams:
+                          type: "integer"
+                          nullable: true
+                          description: "Estimated CO2 emissions of the meal in grams"
+                        co2_score:
+                          type: "integer"
+                          nullable: true
+                          minimum: 1
+                          maximum: 3
+                          description: "CO2 score of the Studentenwerk as number of leaves (3 is best)"
+                        dietary_preferences:
+                          type: "object"
+                          description: "Dietary markers from the website. There is no halal information; the contains_* flags are no guarantee for a halal meal."
+                          properties:
+                            organic:
+                              type: "boolean"
+                            contains_pork:
+                              type: "boolean"
+                            contains_beef:
+                              type: "boolean"
+                            contains_poultry:
+                              type: "boolean"
+                            contains_alcohol:
+                              type: "boolean"
+                            schleswig_holstein_plate:
+                              type: "boolean"
+                            streetfood:
+                              type: "boolean"
                         location:
                           type: object
                           properties:

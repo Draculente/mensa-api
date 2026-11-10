@@ -6,7 +6,7 @@ use regex::Regex;
 use scraper::Html;
 use scraper::Selector;
 
-use crate::model::{Allergen, Language, Location, Meal};
+use crate::model::{Allergen, DietaryPreferences, Language, Location, Meal};
 use futures::StreamExt;
 use strum::IntoEnumIterator;
 
@@ -75,6 +75,8 @@ fn parse_meals(
     let price_selector = Selector::parse(".menu_preis").expect("Price selector failed");
     let menu_location_selector =
         Selector::parse(".menu_art").expect("Menu location selector failed");
+    let co2_score_selector = Selector::parse(".co2blatt").expect("CO2 score selector failed");
+    let co2_grams_selector = Selector::parse(".co2box_text").expect("CO2 grams selector failed");
     let day_element_selector =
         Selector::parse(".tag_headline[data-day]").expect("Day element selector failed");
 
@@ -138,6 +140,43 @@ fn parse_meals(
                     .ok_or(anyhow!("Failed to select menu location"))?
             };
 
+            let arten: Vec<&str> = meal_info
+                .attr("data-arten")
+                .unwrap_or_default()
+                .split('|')
+                .filter(|a| !a.is_empty())
+                .collect();
+            let has_art = |code: &str| arten.contains(&code);
+
+            let dietary_preferences = DietaryPreferences {
+                organic: has_art("BIO"),
+                contains_pork: has_art("S"),
+                contains_beef: has_art("R"),
+                contains_poultry: has_art("G"),
+                contains_alcohol: has_art("A"),
+                schleswig_holstein_plate: has_art("SHT"),
+                streetfood: has_art("STF"),
+            };
+
+            let co2_score = meal_info
+                .select(&co2_score_selector)
+                .next()
+                .and_then(|e| e.attr("data-anz"))
+                .and_then(|a| a.parse::<u8>().ok());
+
+            let co2_grams = meal_info
+                .select(&co2_grams_selector)
+                .next()
+                .map(|e| e.text().collect::<String>())
+                .and_then(|t| {
+                    let digits: String = t
+                        .chars()
+                        .skip_while(|c| !c.is_ascii_digit())
+                        .take_while(|c| c.is_ascii_digit())
+                        .collect();
+                    digits.parse::<u32>().ok()
+                });
+
             let raw_allergens = meal_info
                 .attr("data-allergene")
                 .ok_or(anyhow!("Failed to get allergen attr"))?;
@@ -175,6 +214,9 @@ fn parse_meals(
                 price,
                 vegan,
                 vegetarian,
+                co2_grams,
+                co2_score,
+                dietary_preferences,
                 location: meal_location.into(),
                 allergens: meal_allergens,
                 date: date.to_string(),

@@ -16,7 +16,22 @@ pub struct MealsQuery {
     exclude_allergens: Option<String>,
     vegan: Option<bool>,
     vegetarian: Option<bool>,
+    organic: Option<bool>,
+    contains_pork: Option<bool>,
+    contains_beef: Option<bool>,
+    contains_poultry: Option<bool>,
+    contains_alcohol: Option<bool>,
+    schleswig_holstein_plate: Option<bool>,
+    streetfood: Option<bool>,
+    /// Meals without a published CO2 value are excluded if this is set
+    max_co2_grams: Option<u32>,
+    /// Meals without a published CO2 value are excluded if this is set
+    min_co2_score: Option<u8>,
     language: Option<String>,
+}
+
+fn matches_flag(filter: Option<bool>, value: bool) -> bool {
+    filter.map(|f| f == value).unwrap_or(true)
 }
 
 impl APIFilter<Meal> for MealsQuery {
@@ -49,6 +64,24 @@ impl APIFilter<Meal> for MealsQuery {
                 .vegetarian
                 .as_ref()
                 .map(|vegetarian| &meal.vegetarian == vegetarian)
+                .unwrap_or(true)
+            && {
+                let d = &meal.dietary_preferences;
+                matches_flag(self.organic, d.organic)
+                    && matches_flag(self.contains_pork, d.contains_pork)
+                    && matches_flag(self.contains_beef, d.contains_beef)
+                    && matches_flag(self.contains_poultry, d.contains_poultry)
+                    && matches_flag(self.contains_alcohol, d.contains_alcohol)
+                    && matches_flag(self.schleswig_holstein_plate, d.schleswig_holstein_plate)
+                    && matches_flag(self.streetfood, d.streetfood)
+            }
+            && self
+                .max_co2_grams
+                .map(|max| meal.co2_grams.is_some_and(|g| g <= max))
+                .unwrap_or(true)
+            && self
+                .min_co2_score
+                .map(|min| meal.co2_score.is_some_and(|s| s >= min))
                 .unwrap_or(true)
             && self
                 .language
